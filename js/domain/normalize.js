@@ -111,11 +111,12 @@ export function normalizeTrip(input) {
  */
 export function normalizeParticipant(input) {
   return {
-    id:        input.id        ?? crypto.randomUUID(),
-    name:      (input.name ?? '').trim(),
-    color:     input.color     ?? '#10b981',
-    startDate: input.startDate ?? null,
-    endDate:   input.endDate   ?? null,
+    id:          input.id          ?? crypto.randomUUID(),
+    name:        (input.name ?? '').trim(),
+    color:       input.color       ?? '#10b981',
+    avatarIndex: input.avatarIndex ?? null,   // 0–31 → avatar locale, null → iniziale colorata
+    startDate:   input.startDate   ?? null,
+    endDate:     input.endDate     ?? null,
   };
 }
 

@@ -2,64 +2,87 @@
    CAMBUSA — components/avatar.js
    Genera HTML per l'avatar di un partecipante.
 
-   Strategia a due livelli:
-   • Lettera iniziale colorata (sempre visibile, fallback offline)
-   • Immagine DiceBear sovrapposta (caricata se online)
-
-   L'img è position:absolute sopra l'iniziale; se non si
-   carica (offline o errore), l'iniziale rimane visibile.
+   Strategia:
+   • avatarIndex 0–31 → immagine locale /assets/avatars/avXX.png
+   • null / non impostato → lettera iniziale colorata (fallback)
    ===================================================== */
 
-const DICEBEAR_BASE = 'https://api.dicebear.com/9.x/avataaars/svg';
+const AVATAR_COUNT = 32;
+const AVATAR_BASE  = './assets/avatars/';
 
 /**
- * URL DiceBear per un nome dato.
- * @param {string} name
+ * URL dell'avatar locale dato un indice 0–31.
+ * @param {number} index
  * @returns {string}
  */
-export function avatarUrl(name) {
-  const seed = encodeURIComponent((name || '?').trim());
-  return `${DICEBEAR_BASE}?seed=${seed}&backgroundColor=transparent`;
+export function avatarUrl(index) {
+  const i = Math.max(0, Math.min(AVATAR_COUNT - 1, index));
+  return `${AVATAR_BASE}av${String(i).padStart(2, '0')}.png`;
 }
 
 /**
  * HTML completo per un avatar partecipante.
  *
- * @param {object} participant   — oggetto con { name, color }
+ * @param {object} participant   — oggetto con { name, color, avatarIndex }
  * @param {string} [modifier]    — classe BEM aggiuntiva, es. 'avatar--sm'
  * @returns {string} HTML string
  */
 export function participantAvatar(participant, modifier = '') {
   const name    = participant?.name  ?? '?';
-  const color   = participant?.color ?? '#888';
+  const color   = participant?.color ?? '#10b981';
+  const idx     = participant?.avatarIndex;
   const initial = name.charAt(0).toUpperCase();
-  const url     = avatarUrl(name);
   const cls     = ['avatar', modifier].filter(Boolean).join(' ');
 
-  return `<div class="${cls}" style="background:${color}" data-avatar-name="${initial}">
-    <img src="${url}" alt="${initial}" class="avatar__img" loading="lazy"
-         onerror="this.style.display='none'">
-  </div>`;
+  if (idx !== null && idx !== undefined) {
+    // Avatar locale
+    return `<div class="${cls}" style="background:#e5e7eb" data-avatar-name="${initial}">
+      <img src="${avatarUrl(idx)}" alt="${_h(name)}" class="avatar__img" loading="lazy"
+           onerror="this.style.display='none'">
+    </div>`;
+  }
+
+  // Fallback: iniziale colorata
+  return `<div class="${cls}" style="background:${color}" data-avatar-name="${initial}"></div>`;
 }
 
 /**
- * Aggiorna un elemento avatar già nel DOM (usato da tripForm dopo rename).
+ * Aggiorna un elemento avatar già nel DOM.
  * @param {HTMLElement} el
  * @param {object} participant
  */
 export function updateAvatarEl(el, participant) {
   if (!el) return;
   const name    = participant?.name  ?? '?';
-  const color   = participant?.color ?? '#888';
+  const color   = participant?.color ?? '#10b981';
+  const idx     = participant?.avatarIndex;
   const initial = name.charAt(0).toUpperCase();
 
-  el.style.background = color;
   el.dataset.avatarName = initial;
 
   const img = el.querySelector('.avatar__img');
-  if (img) {
-    img.src   = avatarUrl(name);
-    img.alt   = initial;
-    img.style.display = '';   // ripristina se era nascosto da onerror
+
+  if (idx !== null && idx !== undefined) {
+    el.style.background = '#e5e7eb';
+    if (img) {
+      img.src   = avatarUrl(idx);
+      img.style.display = '';
+    } else {
+      // Crea img se non esiste
+      const newImg = document.createElement('img');
+      newImg.src       = avatarUrl(idx);
+      newImg.alt       = initial;
+      newImg.className = 'avatar__img';
+      newImg.loading   = 'lazy';
+      newImg.onerror   = () => { newImg.style.display = 'none'; };
+      el.appendChild(newImg);
+    }
+  } else {
+    el.style.background = color;
+    if (img) img.style.display = 'none';
   }
+}
+
+function _h(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }

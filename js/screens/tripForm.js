@@ -390,12 +390,15 @@ function _renderPItem(p) {
           </div>
         </details>
 
-        <label class="field-label">Colore</label>
-        <div class="color-picker">
-          ${COLORS.map(c => `
-            <button class="color-swatch ${p.color === c ? 'color-swatch--active' : ''}"
-                    data-pid="${p.id}" data-pcolor="${c}"
-                    style="background:${c}"></button>`).join('')}
+        <label class="field-label">Avatar</label>
+        <div class="avatar-picker">
+          ${Array.from({length: 32}, (_, i) => `
+            <button class="avatar-pick-btn ${p.avatarIndex === i ? 'avatar-pick-btn--active' : ''}"
+                    data-pid="${p.id}" data-avatarindex="${i}"
+                    title="Avatar ${i}">
+              <img src="./assets/avatars/av${String(i).padStart(2,'0')}.png"
+                   alt="av${i}" loading="lazy">
+            </button>`).join('')}
         </div>
 
         <button class="btn-remove-p" data-removepid="${p.id}">
@@ -446,20 +449,20 @@ function _bindParticipantEvents() {
     input.addEventListener('change', _updatePField);
   });
 
-  // Colore
-  document.querySelectorAll('[data-pcolor]').forEach(btn => {
+  // Avatar picker
+  document.querySelectorAll('[data-avatarindex]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const pid   = e.currentTarget.dataset.pid;
-      const color = e.currentTarget.dataset.pcolor;
-      const p     = _findP(pid);
+      const pid = e.currentTarget.dataset.pid;
+      const idx = Number(e.currentTarget.dataset.avatarindex);
+      const p   = _findP(pid);
       if (!p) return;
-      p.color  = color;
+      p.avatarIndex = idx;
       _isDirty = true;
-      document.querySelectorAll(`.p-item[data-pid="${pid}"] .color-swatch`)
-        .forEach(s => s.classList.toggle('color-swatch--active', s.dataset.pcolor === color));
-      const avatar = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
-      if (avatar) updateAvatarEl(avatar, { name: _findP(pid)?.name ?? '?', color });
+      document.querySelectorAll(`.p-item[data-pid="${pid}"] .avatar-pick-btn`)
+        .forEach(b => b.classList.toggle('avatar-pick-btn--active', Number(b.dataset.avatarindex) === idx));
+      const avatarEl = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
+      if (avatarEl) updateAvatarEl(avatarEl, p);
     });
   });
 

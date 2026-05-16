@@ -1988,6 +1988,37 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
 }
 .share-btn--gist:active { opacity: .75; }
 
+/* ── Avatar picker (trip form) ──────────────────────── */
+.avatar-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.avatar-pick-btn {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  padding: 0;
+  background: var(--color-bg);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color .15s, transform .1s;
+}
+.avatar-pick-btn img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.avatar-pick-btn:active { transform: scale(0.92); }
+.avatar-pick-btn--active {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
+}
+
 /* ── Gruppi di partecipanti (trip form) ─────────────── */
 .add-group-row {
   display: flex;
