@@ -7,7 +7,7 @@
    • Fallback   → cache se network non disponibile
    ===================================================== */
 
-const CACHE_NAME = 'cambusa-v51';
+const CACHE_NAME = 'cambusa-v52';
 
 const PRECACHE = [
   '/cambusa/',

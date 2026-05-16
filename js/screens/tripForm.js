@@ -198,7 +198,9 @@ export const TripFormScreen = {
       if (!name) { input?.focus(); return; }
       _draft.participants.push({
         id: crypto.randomUUID(), name,
-        color: _nextColor(), startDate: null, endDate: null,
+        color: _nextColor(),
+        avatarIndex: _draft.participants.length % 32,  // avatar automatico, modificabile
+        startDate: null, endDate: null,
       });
       input.value = '';
       input.focus();
