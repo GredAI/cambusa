@@ -256,12 +256,13 @@ main {
 
 /*
   iOS Safari ignora padding-bottom sui flex container per il calcolo scroll.
-  .bottomnav-spacer è un elemento DOM reale che garantisce spazio fisico
-  sotto il contenuto, evitando che il BottomNav fisso copra l'ultimo item.
+  .bottomnav-spacer viene inserito via JS come ultimo figlio di .screen-content,
+  garantendo spazio fisico reale sotto il contenuto.
 */
 .bottomnav-spacer {
+  display: block;
   width: 100%;
-  height: calc(90px + var(--safe-bottom));
+  height: 160px;
   flex-shrink: 0;
   pointer-events: none;
 }

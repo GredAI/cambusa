@@ -11,6 +11,17 @@ export const Render = {
   screen(Screen) {
     _activeScreen?.unmount?.();
     document.getElementById('app').innerHTML = Screen.html();
+
+    // Fix iOS Safari: padding-bottom su flex container non viene contato
+    // per il calcolo dell'area scrollabile. Inseriamo uno spacer fisico
+    // come ULTIMO FIGLIO del flex container, garantito visibile al layout engine.
+    const content = document.querySelector('.screen-content');
+    if (content) {
+      const spacer = document.createElement('div');
+      spacer.className = 'bottomnav-spacer';
+      content.appendChild(spacer);
+    }
+
     _activeScreen = Screen;
     Screen.mount?.();
   },
@@ -50,13 +61,7 @@ export function BottomNav(active = '') {
     { id: 'settings', icon: '⚙️', label: 'Altro'  },
   ];
 
-  /*
-    Lo spacer è un elemento DOM reale (non ::after) perché iOS Safari
-    ignora il padding-bottom sui flex container per il calcolo dello scroll.
-    Un elemento fisico con altezza esplicita è l'unica soluzione affidabile.
-  */
   return `
-    <div class="bottomnav-spacer" aria-hidden="true"></div>
     <nav class="bottom-nav">
       ${items.map(item => {
         if (item.id === 'fab') {
