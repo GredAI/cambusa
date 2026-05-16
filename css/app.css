@@ -67,8 +67,9 @@
 }
 
 html {
-  /* dvh: dynamic viewport height — corretto per iOS keyboard + browser bar */
-  min-height: 100dvh;
+  /* svh: small viewport height — stabile, non cambia con la tastiera iOS */
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
 }
 
 body {
@@ -76,9 +77,8 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
-  min-height: 100dvh;
-  /* Safe area bottom: niente contenuto sotto home indicator */
-  padding-bottom: var(--safe-bottom);
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
 }
 
 #app {
@@ -186,7 +186,8 @@ main {
 
 /* ── Schermate ────────────────────────────────────────── */
 .screen {
-  min-height: 100dvh;
+  min-height: 100svh;
+  min-height: -webkit-fill-available;
   padding-bottom: calc(160px + var(--safe-bottom));
   overflow-x: hidden;
 }
@@ -1296,6 +1297,7 @@ main {
 .split-presets {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* splitMode toggle */

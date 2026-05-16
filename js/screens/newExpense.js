@@ -199,12 +199,16 @@ export const NewExpenseScreen = {
     setTimeout(() => document.getElementById('f-amount')?.focus(), 100);
 
     // Importo
-    document.getElementById('f-amount')
-      ?.addEventListener('input', e => {
-        _form.amount = e.target.value;
-        _refreshConsumerSummary();
-        _refreshPayerSummary(trip);
-      });
+    const amtInput = document.getElementById('f-amount');
+    amtInput?.addEventListener('input', e => {
+      _form.amount = e.target.value;
+      _refreshConsumerSummary();
+      _refreshPayerSummary(trip);
+    });
+    // iOS: quando la tastiera si chiude, riporta la pagina in cima
+    amtInput?.addEventListener('blur', () => {
+      setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 80);
+    });
 
     // Data
     document.getElementById('f-date')
