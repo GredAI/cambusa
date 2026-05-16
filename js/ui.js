@@ -11,17 +11,6 @@ export const Render = {
   screen(Screen) {
     _activeScreen?.unmount?.();
     document.getElementById('app').innerHTML = Screen.html();
-
-    // Fix iOS Safari: padding-bottom su flex container non viene contato
-    // per il calcolo dell'area scrollabile. Inseriamo uno spacer fisico
-    // come ULTIMO FIGLIO del flex container, garantito visibile al layout engine.
-    const content = document.querySelector('.screen-content');
-    if (content) {
-      const spacer = document.createElement('div');
-      spacer.className = 'bottomnav-spacer';
-      content.appendChild(spacer);
-    }
-
     _activeScreen = Screen;
     Screen.mount?.();
   },
