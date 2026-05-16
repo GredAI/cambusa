@@ -1,0 +1,11 @@
+# Documenti interni
+*.docx
+*.doc
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node (se mai usato)
+node_modules/
