@@ -50,7 +50,13 @@ export function BottomNav(active = '') {
     { id: 'settings', icon: '⚙️', label: 'Altro'  },
   ];
 
+  /*
+    Lo spacer è un elemento DOM reale (non ::after) perché iOS Safari
+    ignora il padding-bottom sui flex container per il calcolo dello scroll.
+    Un elemento fisico con altezza esplicita è l'unica soluzione affidabile.
+  */
   return `
+    <div class="bottomnav-spacer" aria-hidden="true"></div>
     <nav class="bottom-nav">
       ${items.map(item => {
         if (item.id === 'fab') {

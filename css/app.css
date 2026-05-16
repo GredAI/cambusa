@@ -255,15 +255,15 @@ main {
 }
 
 /*
-  iOS Safari ha un bug noto: ignora padding-bottom sui flex container
-  ai fini del calcolo dell'area scrollabile.
-  Soluzione: spacer fisico come pseudo-elemento (un vero flex item).
+  iOS Safari ignora padding-bottom sui flex container per il calcolo scroll.
+  .bottomnav-spacer è un elemento DOM reale che garantisce spazio fisico
+  sotto il contenuto, evitando che il BottomNav fisso copra l'ultimo item.
 */
-.screen-content::after {
-  content: '';
-  display: block;
-  min-height: calc(140px + var(--safe-bottom));
+.bottomnav-spacer {
+  width: 100%;
+  height: calc(90px + var(--safe-bottom));
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 /* ── Topbar varianti ──────────────────────────────────── */
