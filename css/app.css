@@ -84,8 +84,8 @@ body {
   Questo elimina tutti i problemi di overlap su iOS Safari/PWA.
 */
 #app {
-  height: 100dvh;
-  height: 100svh; /* fallback per browser senza dvh */
+  height: 100svh;   /* fallback: viewport stabile, non cambia con tastiera */
+  height: 100dvh;   /* preferito: si adatta alla viewport disponibile */
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -127,68 +127,12 @@ body {
   box-shadow: 0 4px 12px rgba(16,185,129,0.35);
 }
 
-/* ── Main ─────────────────────────────────────────────── */
-main {
-  padding: 20px;
-}
-
 /* ── Card viaggio ─────────────────────────────────────── */
-.trip-card,
-.dashboard-card {
+.trip-card {
   background: var(--color-surface);
   border-radius: var(--r-lg);
   padding: 20px;
-  margin-bottom: 20px;
   box-shadow: var(--shadow-sm);
-}
-
-.trip-card h2 {
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.trip-sub {
-  color: var(--color-text-sub);
-  margin-top: 6px;
-  font-size: 14px;
-}
-
-.trip-footer {
-  margin-top: 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 13px;
-  color: var(--color-text-sub);
-}
-
-.trip-footer strong {
-  color: var(--color-primary-dark);
-  font-size: 15px;
-  background: var(--color-primary-bg);
-  padding: 6px 12px;
-  border-radius: 12px;
-}
-
-/* ── Dashboard ────────────────────────────────────────── */
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-}
-
-.dashboard-header h3 {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.dashboard-header span {
-  font-size: 13px;
-  color: var(--color-text-sub);
-  background: var(--color-bg);
-  padding: 4px 10px;
-  border-radius: 10px;
 }
 
 /* ── Schermate ────────────────────────────────────────── */
@@ -463,113 +407,7 @@ main {
 .balance-status--negative { color: #d97706; }
 .balance-status--even     { color: var(--color-text-muted); }
 
-/* ── Bottom sheet partecipante ───────────────────────── */
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 200;
-  display: flex;
-  align-items: flex-end;
-}
-.sheet {
-  background: var(--color-surface);
-  border-radius: 20px 20px 0 0;
-  width: 100%;
-  max-height: 82vh;
-  display: flex;
-  flex-direction: column;
-  transform: translateY(100%);
-  transition: transform .28s cubic-bezier(.32,0,.67,0);
-  overflow: hidden;
-}
-.sheet--open { transform: translateY(0); }
-.sheet-handle {
-  width: 40px; height: 4px;
-  background: var(--color-border);
-  border-radius: 2px;
-  margin: 12px auto 0;
-  flex-shrink: 0;
-}
-.sheet-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px 14px;
-  border-bottom: 1px solid var(--color-border-light);
-  flex-shrink: 0;
-}
-.sheet-name { font-size: 17px; font-weight: 700; margin-bottom: 2px; }
-.sheet-close {
-  margin-left: auto;
-  background: var(--color-bg);
-  border: none;
-  border-radius: 50%;
-  width: 30px; height: 30px;
-  font-size: 14px;
-  color: var(--color-text-sub);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-}
-.sheet-stats {
-  display: flex;
-  padding: 14px 16px;
-  gap: 0;
-  border-bottom: 1px solid var(--color-border-light);
-  flex-shrink: 0;
-}
-.sheet-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-}
-.sheet-stat + .sheet-stat {
-  border-left: 1px solid var(--color-border-light);
-}
-.sheet-stat__val { font-size: 18px; font-weight: 800; }
-.sheet-stat__lbl { font-size: 12px; color: var(--color-text-muted); }
-.sheet-scroll {
-  overflow-y: auto;
-  flex: 1;
-  padding: 4px 16px 24px;
-  -webkit-overflow-scrolling: touch;
-}
-.sheet-section-title {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  margin: 16px 0 8px;
-}
-.sheet-exp-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.sheet-exp-row:last-child { border-bottom: none; }
-.sheet-exp-icon { font-size: 18px; flex-shrink: 0; }
-.sheet-exp-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow: hidden;
-}
-.sheet-exp-title {
-  font-size: 14px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.sheet-exp-date { font-size: 12px; color: var(--color-text-muted); }
-.sheet-exp-amt  { font-size: 14px; font-weight: 700; white-space: nowrap; }
-.sheet-empty    { font-size: 13px; color: var(--color-text-muted); padding: 8px 0; }
+/* (sheet-* styles unificati nella sezione "Participant bottom sheet" più avanti) */
 
 /* Settlement card (suggested) */
 .settlements-section { display: flex; flex-direction: column; gap: 12px; }
@@ -771,27 +609,6 @@ main {
   opacity: .85;
 }
 .share-btn span { font-size: 18px; }
-
-/* ── Export / Import row ─────────────────────────────────── */
-.export-row {
-  display: flex;
-  gap: 10px;
-  margin-top: 4px;
-}
-.export-btn {
-  padding: 15px 16px;
-  border-radius: var(--r-md);
-  border: 1.5px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-sub);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background .15s;
-}
-.export-btn:active { background: var(--color-bg); }
 
 .import-row {
   display: flex;
@@ -2152,115 +1969,13 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
   margin-left: 2px;
 }
 
-/* ── GitHub Gist share overlay ──────────────────────── */
+/* ── Pulsante condivisione HTML (balances) ──────────── */
 .share-btn--gist {
-  background: var(--color-card);
-  color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-primary-dark);
   border: 1.5px solid var(--color-primary);
 }
 .share-btn--gist:active { opacity: .75; }
-
-.gist-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.45);
-  z-index: 300;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 16px;
-  animation: fadeIn .15s ease;
-}
-
-.gist-card {
-  background: var(--color-card);
-  border-radius: var(--r-lg) var(--r-lg) var(--r-md) var(--r-md);
-  width: 100%;
-  max-width: 480px;
-  padding: 20px 18px 24px;
-  box-shadow: 0 -4px 32px rgba(0,0,0,.18);
-}
-
-.gist-card__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.gist-card__title {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.gist-card__close {
-  background: none;
-  border: none;
-  font-size: 18px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 6px;
-}
-.gist-card__close:active { background: var(--color-bg); }
-
-.gist-card__hint {
-  font-size: 13px;
-  color: var(--color-text-muted);
-  margin: 0 0 12px;
-  line-height: 1.5;
-}
-
-.gist-card__url-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.gist-card__url {
-  flex: 1;
-  font-size: 12px;
-  font-family: monospace;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--r-sm);
-  padding: 8px 10px;
-  color: var(--color-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.gist-card__copy-btn {
-  background: var(--color-primary);
-  border: none;
-  border-radius: var(--r-sm);
-  padding: 8px 12px;
-  font-size: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.gist-card__copy-btn:active { opacity: .75; }
-
-.gist-card__copied {
-  font-size: 12px;
-  color: var(--color-positive);
-  margin: 0 0 10px;
-  font-weight: 600;
-}
-
-.gist-card__actions {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 12px;
-}
-
-.gist-card__open-link {
-  font-size: 14px;
-  font-weight: 600;
-}
 
 /* ── Gruppi di partecipanti (trip form) ─────────────── */
 .add-group-row {
@@ -2347,7 +2062,7 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
   align-items: center;
   gap: 10px;
   width: 100%;
-  background: var(--color-card);
+  background: var(--color-surface);
   border: 1.5px solid var(--color-border);
   border-radius: var(--r-md);
   padding: 8px 12px;
@@ -2357,7 +2072,7 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
 }
 .group-member-toggle--on {
   border-color: var(--color-primary);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-card));
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
 }
 .group-member-toggle:active { opacity: .75; }
 
@@ -2370,7 +2085,7 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
 
 /* Group chip in expense form consumer presets */
 .filter-chip--group {
-  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-card));
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
 }
 .filter-chip--group.filter-chip--active {
   background: var(--color-primary);
