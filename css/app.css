@@ -187,7 +187,8 @@ main {
 /* ── Schermate ────────────────────────────────────────── */
 .screen {
   min-height: 100dvh;
-  padding-bottom: calc(100px + var(--safe-bottom));
+  padding-bottom: calc(160px + var(--safe-bottom));
+  overflow-x: hidden;
 }
 
 /* ── Form inputs ──────────────────────────────────────── */
@@ -247,7 +248,7 @@ main {
 
 /* ── Layout schermate ─────────────────────────────────── */
 .screen-content {
-  padding: 16px 16px 0;
+  padding: 16px 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -347,7 +348,7 @@ main {
   border-bottom: 1px solid var(--color-border-light);
 }
 .balance-row:last-child { border-bottom: none; }
-.balance-row__name   { flex: 1; font-size: 14px; font-weight: 500; }
+.balance-row__name   { flex: 1; font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .balance-row__amount { font-size: 15px; font-weight: 700; }
 
 .balance-row--full .balance-row__info  { flex: 1; display: flex; flex-direction: column; gap: 2px; }
@@ -398,7 +399,13 @@ main {
   flex: 1;
   min-width: 0;
 }
-.balance-pill__name { font-size: 15px; font-weight: 600; }
+.balance-pill__name {
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* Riga importi anticipato/consumato */
 .balance-pill__amounts {
