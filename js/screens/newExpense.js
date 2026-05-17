@@ -1014,44 +1014,81 @@ function _reset() {
 }
 
 /** Ricostruisce lo stato form da una spesa esistente (edit mode) */
+/**
+ * Rileva se un array di {shares/sharesPaid} fu salvato in modalità "importo"
+ * (valori in centesimi, somma ≈ amountCents) o in modalità "quote" (interi piccoli).
+ *
+ * Condizioni:
+ *  • somma >= 100  (almeno 1€ — esclude quote tipo 1, 2, 3…)
+ *  • |somma / amountCents - 1| < 1%  (corrispondenza quasi esatta)
+ */
+function _detectAmountsMode(values, amountCents) {
+  if (amountCents <= 0) return false;
+  const total = values.reduce((s, v) => s + (v ?? 0), 0);
+  if (total < 100) return false;  // sicuramente quote intere
+  return Math.abs(total / amountCents - 1) < 0.01;
+}
+
 function _formFromExpense(expense, trip) {
-  const consumers = expense.consumers ?? [];
-  const payers    = expense.payers    ?? [];
+  const consumers   = expense.consumers ?? [];
+  const payers      = expense.payers    ?? [];
+  const amountCents = readAmount(expense);   // centesimi
+  const amountEuros = amountCents / 100;
 
-  const sharesMap      = {};
-  const payerSharesMap = {};
+  // ── Consumers ──────────────────────────────────────────
+  const sharesMap          = {};
+  const consumerAmountsMap = {};
 
-  // Inizializza tutti i partecipanti con shares=1 di default
   trip.participants.forEach(p => { sharesMap[p.id] = 1; });
 
-  // Sovrascrivi con le shares effettive dei consumers
-  consumers.forEach(c => {
-    sharesMap[c.participantId] = Math.max(1, c.shares ?? 1);
-  });
+  const consumerValues    = consumers.map(c => c.shares ?? 1);
+  const consumersInAmounts = _detectAmountsMode(consumerValues, amountCents);
 
-  // Payers
-  payers.forEach(p => {
-    payerSharesMap[p.participantId] = Math.max(1, p.sharesPaid ?? 1);
-  });
+  if (consumersInAmounts) {
+    consumers.forEach(c => {
+      consumerAmountsMap[c.participantId] = (c.shares ?? 0) / 100;
+    });
+  } else {
+    consumers.forEach(c => {
+      sharesMap[c.participantId] = Math.max(1, c.shares ?? 1);
+    });
+  }
+
+  // ── Payers ─────────────────────────────────────────────
+  const payerSharesMap  = {};
+  const payerAmountsMap = {};
+
+  const payerValues    = payers.map(p => p.sharesPaid ?? 1);
+  const payersInAmounts = _detectAmountsMode(payerValues, amountCents);
+
+  if (payersInAmounts) {
+    payers.forEach(p => {
+      payerAmountsMap[p.participantId] = (p.sharesPaid ?? 0) / 100;
+    });
+  } else {
+    payers.forEach(p => {
+      payerSharesMap[p.participantId] = Math.max(1, p.sharesPaid ?? 1);
+    });
+  }
 
   return {
-    title:          expense.title,
-    amount:         readAmount(expense) / 100,
-    category:       expense.category ?? 'cibo',
-    date:           expense.date,
-    notes:          expense.notes ?? '',
+    title:    expense.title,
+    amount:   amountEuros,
+    category: expense.category ?? 'cibo',
+    date:     expense.date,
+    notes:    expense.notes ?? '',
     // Consumers
     consumerPreset:     'custom',
-    consumerMode:       'shares',
+    consumerMode:       consumersInAmounts ? 'amounts' : 'shares',
     consumerPids:       consumers.map(c => c.participantId),
     sharesMap,
-    consumerAmountsMap: {},
+    consumerAmountsMap,
     // Payers
-    payerPids:        payers.map(p => p.participantId),
+    payerPids:       payers.map(p => p.participantId),
     payerSharesMap,
-    payerMode:        'shares',
-    payerAmountsMap:  {},
-    // Transport (mai pre-compilato in edit mode — l'utente sceglie di nuovo)
+    payerMode:       payersInAmounts ? 'amounts' : 'shares',
+    payerAmountsMap,
+    // Transport (mai pre-compilato in edit mode)
     transportSync:  false,
     transportType:  'andata',
     transportDate:  null,
