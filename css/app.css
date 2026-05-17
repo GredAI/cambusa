@@ -365,6 +365,12 @@ body {
   color: var(--color-text-muted);
   font-style: italic;
 }
+.guest-split-hint {
+  font-size: 11px;
+  color: var(--color-primary-dark);
+  margin-top: 4px;
+  width: 100%;
+}
 
 /* Bottone "Distribuisci rimanente per quote" */
 .btn-distribute {

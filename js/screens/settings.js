@@ -9,9 +9,22 @@ import { Router }  from '../router.js';
 import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
 
-const APP_VERSION = 'v77';
+const APP_VERSION = 'v79';
 
 const CURRENCIES = ['€', '$', '£', 'CHF', '¥', 'kr'];
+
+/**
+ * Download compatibile Safari — usa data URI invece di blob URL.
+ * In PWA mode su iOS il blob createObjectURL viene bloccato.
+ */
+function _safariDownload(jsonString, filename) {
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonString);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 export const SettingsScreen = {
 
@@ -80,6 +93,14 @@ export const SettingsScreen = {
                        accept=".json" style="display:none" />
               </label>
             </div>
+            ${localStorage.getItem('cambusa_cached_backup') ? `
+            <button class="export-btn export-btn--cached" data-action="export-cached"
+                    style="margin-top:8px;width:100%">
+              💾 Scarica ultimo auto-backup
+              <span style="font-size:11px;opacity:0.7;display:block">
+                ${localStorage.getItem('cambusa_last_autobackup') ?? ''}
+              </span>
+            </button>` : ''}
           </div>
 
           <!-- Zona pericolosa -->
@@ -193,23 +214,25 @@ export const SettingsScreen = {
             Toast.show('Nessun viaggio da esportare', { type: 'info' });
             return;
           }
-          // Esporta ogni viaggio e raccogli in array
-          const bundles = await Promise.all(
-            trips.map(t => Actions.exportTrip(t.id))
-          );
-          const valid = bundles.filter(r => r.ok).map(r => r.value);
-          const json  = JSON.stringify({ _cambusaBackup: true, trips: valid }, null, 2);
-          const blob  = new Blob([json], { type: 'application/json' });
-          const url   = URL.createObjectURL(blob);
-          const a     = document.createElement('a');
-          a.href      = url;
-          a.download  = `cambusa-backup-${new Date().toISOString().slice(0, 10)}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
+          const bundles = await Promise.all(trips.map(t => Actions.exportTrip(t.id)));
+          const valid   = bundles.filter(r => r.ok).map(r => r.value);
+          const json    = JSON.stringify({ _cambusaBackup: true, trips: valid }, null, 2);
+          const fname   = `cambusa-backup-${new Date().toISOString().slice(0, 10)}.json`;
+          _safariDownload(json, fname);
           Toast.show(`✓ ${valid.length} viaggio/i esportati`, { type: 'success' });
         } catch (err) {
           Toast.show('Errore export', { type: 'error' });
         }
+        return;
+      }
+
+      // Scarica backup in cache (auto-backup da localStorage)
+      if (e.target.closest('[data-action="export-cached"]')) {
+        const json  = localStorage.getItem('cambusa_cached_backup');
+        const date  = localStorage.getItem('cambusa_last_autobackup') ?? 'backup';
+        if (!json) { Toast.show('Nessun backup in cache', { type: 'info' }); return; }
+        _safariDownload(json, `cambusa-autobackup-${date}.json`);
+        Toast.show('✓ Backup scaricato', { type: 'success' });
         return;
       }
 

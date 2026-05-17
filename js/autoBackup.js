@@ -28,16 +28,13 @@ export async function maybeAutoBackup() {
     if (!valid.length) return;
 
     const json = JSON.stringify({ _cambusaBackup: true, trips: valid }, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = `cambusa-autobackup-${today}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
 
+    // Salva in localStorage (nessun download automatico — Safari blocca i blob async).
+    // L'utente può scaricare da Impostazioni → "Scarica ultimo auto-backup".
+    localStorage.setItem('cambusa_cached_backup', json);
     localStorage.setItem(BACKUP_KEY, today);
-    Toast.show('💾 Backup automatico salvato', { type: 'success' });
+
+    Toast.show('💾 Backup aggiornato — scaricabile da Impostazioni', { type: 'success' });
   } catch (err) {
     console.warn('[AutoBackup]', err);
   }
