@@ -119,6 +119,13 @@ export const Actions = {
       settings.schemaVersion = 10;
       await DB.settings.save(settings);
     }
+    if ((settings.schemaVersion ?? 0) < 11) {
+      // Assegna avatarIndex ai partecipanti che non ce l'hanno
+      await _migrateToV11();
+      settings.schemaVersion = 11;
+      await DB.settings.save(settings);
+      State.trips = await DB.trips.getAll();
+    }
 
     State.settings = settings;
 
@@ -512,6 +519,30 @@ async function _migrateToV10() {
   }
 
   if (removed > 0) console.log(`[Actions] _migrateToV10: ${removed} settlement orfani rimossi`);
+}
+
+// ── Migrazione v11: assegna avatarIndex ai partecipanti ──
+// Partecipanti creati prima della v52 non hanno avatarIndex.
+// Assegna un indice deterministico basato sulla posizione nel viaggio.
+// IDEMPOTENTE: salta partecipanti che hanno già un indice.
+async function _migrateToV11() {
+  const trips = await DB.trips.getAll();
+  let updated = 0;
+  for (const trip of trips) {
+    let changed = false;
+    trip.participants = trip.participants.map((p, idx) => {
+      if (p.avatarIndex === null || p.avatarIndex === undefined) {
+        changed = true;
+        return { ...p, avatarIndex: idx % 32 };
+      }
+      return p;
+    });
+    if (changed) {
+      await DB.trips.save(trip);
+      updated++;
+    }
+  }
+  if (updated > 0) console.log(`[Actions] _migrateToV11: avatarIndex assegnato in ${updated} viaggio/i`);
 }
 
 // ── Migrazione v9: Ledger V3 ──────────────────────────
