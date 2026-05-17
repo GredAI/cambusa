@@ -43,15 +43,16 @@ export function normalizeExpense(tripId, input) {
     notes:        (input.notes ?? '').trim(),
     consumers:    (input.consumers ?? []).map(c => ({
       participantId: c.participantId,
-      shares:        Number.isInteger(c.shares) && c.shares >= 0 ? c.shares : 1,
+      shares:        (typeof c.shares === 'number' && c.shares >= 0) ? c.shares : 1,
     })),
     payers:       (input.payers ?? []).map(p => ({
       participantId: p.participantId,
-      sharesPaid:    Number.isInteger(p.sharesPaid) && p.sharesPaid > 0 ? p.sharesPaid : 1,
+      sharesPaid:    (typeof p.sharesPaid === 'number' && p.sharesPaid > 0) ? p.sharesPaid : 1,
     })),
-    deletedAt:    input.deletedAt ?? null,
+    splitMeta:    input.splitMeta   ?? null,
+    deletedAt:    input.deletedAt   ?? null,
     attachmentIds: input.attachmentIds ?? [],
-    createdAt:    input.createdAt ?? now(),
+    createdAt:    input.createdAt   ?? now(),
     updatedAt:    now(),
   };
 }

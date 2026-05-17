@@ -706,7 +706,7 @@ async function _handleSave(trip) {
   if (_form.consumerPids.length === 0) return Toast.show('Seleziona almeno un consumer', { type: 'error' });
   if (_form.payerPids.length === 0)    return Toast.show('Seleziona chi ha pagato', { type: 'error' });
 
-  // Validazione modalità importo esatto: la somma deve corrispondere all'importo
+  // Validazione modalità importo esatto consumers
   if (_form.consumerMode === 'amounts') {
     const assigned = _form.consumerPids.reduce(
       (s, pid) => s + (parseFloat(_form.consumerAmountsMap[pid]) || 0), 0);
@@ -715,8 +715,23 @@ async function _handleSave(trip) {
       const trip = State.currentTrip;
       const cur  = trip?.currency ?? '€';
       const msg  = amount > assigned
-        ? `Mancano ${(amount - assigned).toFixed(2)}${cur} da assegnare`
-        : `Importi in eccesso di ${(assigned - amount).toFixed(2)}${cur}`;
+        ? `Consumatori: mancano ${(amount - assigned).toFixed(2)}${cur}`
+        : `Consumatori: eccesso di ${(assigned - amount).toFixed(2)}${cur}`;
+      return Toast.show(msg, { type: 'error' });
+    }
+  }
+
+  // Validazione modalità importo esatto payers
+  if (_form.payerMode === 'amounts') {
+    const payerAssigned = _form.payerPids.reduce(
+      (s, pid) => s + (parseFloat(_form.payerAmountsMap[pid]) || 0), 0);
+    const payerDiff = Math.abs(amount - payerAssigned);
+    if (payerDiff >= 0.01) {
+      const trip = State.currentTrip;
+      const cur  = trip?.currency ?? '€';
+      const msg  = amount > payerAssigned
+        ? `Pagatori: mancano ${(amount - payerAssigned).toFixed(2)}${cur}`
+        : `Pagatori: eccesso di ${(payerAssigned - amount).toFixed(2)}${cur}`;
       return Toast.show(msg, { type: 'error' });
     }
   }
@@ -732,6 +747,10 @@ async function _handleSave(trip) {
     notes:    _form.notes,
     consumers,
     payers,
+    splitMeta: {
+      payerMode:    _form.payerMode,
+      consumerMode: _form.consumerMode,
+    },
   };
 
   let saved;
@@ -766,10 +785,10 @@ async function _handleSave(trip) {
 
 function _buildConsumers() {
   if (_form.consumerMode === 'amounts') {
-    // Converte importi in centesimi come peso proporzionale
+    // Salva gli importi in euro direttamente (×100 non serve: il motore usa i rapporti)
     return _form.consumerPids.map(pid => ({
       participantId: pid,
-      shares: Math.round((_form.consumerAmountsMap[pid] ?? 0) * 100) || 1,
+      shares: Math.round((_form.consumerAmountsMap[pid] ?? 0) * 100) / 100 || 0.01,
     }));
   }
   return _form.consumerPids.map(pid => ({
@@ -780,10 +799,10 @@ function _buildConsumers() {
 
 function _buildPayers() {
   if (_form.payerMode === 'amounts') {
-    // Usa gli importi in euro come peso proporzionale (×100 per precisione)
+    // Salva gli importi in euro direttamente (come _buildConsumers)
     return _form.payerPids.map(pid => ({
       participantId: pid,
-      sharesPaid: Math.round((_form.payerAmountsMap[pid] ?? 0) * 100) || 1,
+      sharesPaid: Math.round((_form.payerAmountsMap[pid] ?? 0) * 100) / 100 || 0.01,
     }));
   }
   return _form.payerPids.map(pid => ({
@@ -1013,40 +1032,84 @@ function _reset() {
   _editExpenseId = null;
 }
 
-/** Ricostruisce lo stato form da una spesa esistente (edit mode) */
 /**
- * Rileva se un array di {shares/sharesPaid} fu salvato in modalità "importo"
- * (valori in centesimi, somma ≈ amountCents) o in modalità "quote" (interi piccoli).
+ * Rileva il formato dei valori di shares/sharesPaid in modalità "importo".
+ * Restituisce:
+ *  'cents' — valori in centesimi (formato vecchio: interi grandi × 100)
+ *  'euros' — valori in euro     (formato nuovo, garantito da splitMeta)
+ *  null    — non è modalità importo (sono quote intere tipo 1, 2, 3…)
  *
- * Condizioni:
- *  • somma >= 100  (almeno 1€ — esclude quote tipo 1, 2, 3…)
- *  • |somma / amountCents - 1| < 1%  (corrispondenza quasi esatta)
+ * @param {number[]} values
+ * @param {number}   amountCents
+ * @param {boolean}  hasSplitMeta  — true = spesa salvata con splitMeta (v66+)
  */
-function _detectAmountsMode(values, amountCents) {
-  if (amountCents <= 0) return false;
-  const total = values.reduce((s, v) => s + (v ?? 0), 0);
-  if (total < 100) return false;  // sicuramente quote intere
-  return Math.abs(total / amountCents - 1) < 0.01;
+function _detectAmountsValues(values, amountCents, hasSplitMeta = false) {
+  if (amountCents <= 0 || values.length === 0) return null;
+  const total       = values.reduce((s, v) => s + (v ?? 0), 0);
+  const amountEuros = amountCents / 100;
+  const allIntegers = values.every(v => Number.isInteger(v));
+
+  // ── Centesimi esatto ────────────────────────────────────────────
+  // Tutti interi, sum ≥ 100 (quote reali sono 1–20 max),
+  // e la somma corrisponde quasi esattamente ad amountCents.
+  if (allIntegers && total >= 100 && Math.abs(total / amountCents - 1) < 0.01) return 'cents';
+
+  // ── Formato euro nuovo (solo con splitMeta) ─────────────────────
+  // Il formato euro è stato introdotto con splitMeta (v66+).
+  // Senza splitMeta il check euro causerebbe falsi positivi su dati in modalità
+  // "quote" in cui la somma coincide per caso con l'importo in euro
+  // (es. spesa 3 €, pagatori con quote [1, 2]).
+  if (hasSplitMeta) {
+    if (total >= 0.005 && Math.abs(total / amountEuros - 1) < 0.02) return 'euros';
+    return 'euros'; // default: splitMeta garantisce la modalità, usa euro
+  }
+
+  // ── Centesimi fallback legacy (solo senza splitMeta) ────────────
+  // Vecchio bug: amountEuro × 100 salvato anche per pagamenti parziali
+  // (sum ≠ amountCents). Se i valori sono interi e almeno uno ≥ 100
+  // non possono essere quote reali (il stepper parte da 1 e arriva a 20 al massimo).
+  if (allIntegers && values.some(v => v >= 100)) return 'cents';
+
+  return null;  // → modalità quote
 }
 
+/** @deprecated usa _detectAmountsValues */
+function _detectAmountsMode(values, amountCents) {
+  return _detectAmountsValues(values, amountCents) !== null;
+}
+
+/** Ricostruisce lo stato form da una spesa esistente (edit mode) */
 function _formFromExpense(expense, trip) {
   const consumers   = expense.consumers ?? [];
   const payers      = expense.payers    ?? [];
   const amountCents = readAmount(expense);   // centesimi
   const amountEuros = amountCents / 100;
+  const splitMeta   = expense.splitMeta ?? null;
 
   // ── Consumers ──────────────────────────────────────────
   const sharesMap          = {};
   const consumerAmountsMap = {};
-
   trip.participants.forEach(p => { sharesMap[p.id] = 1; });
 
-  const consumerValues    = consumers.map(c => c.shares ?? 1);
-  const consumersInAmounts = _detectAmountsMode(consumerValues, amountCents);
+  // splitMeta (nuovo) → fonte di verità sul modo; altrimenti auto-detect
+  const savedConsumerMode  = splitMeta?.consumerMode ?? null;
+  const consumerValues     = consumers.map(c => c.shares ?? 1);
+  let   consumersInAmounts = false;
+  let   consumerFmt        = null;
+
+  if (savedConsumerMode === 'amounts') {
+    consumersInAmounts = true;
+    consumerFmt        = _detectAmountsValues(consumerValues, amountCents, true);
+  } else if (!savedConsumerMode) {
+    // Spesa vecchia senza splitMeta — auto-detect con fallback legacy
+    consumerFmt        = _detectAmountsValues(consumerValues, amountCents, false);
+    consumersInAmounts = consumerFmt !== null;
+  }
 
   if (consumersInAmounts) {
     consumers.forEach(c => {
-      consumerAmountsMap[c.participantId] = (c.shares ?? 0) / 100;
+      const v = c.shares ?? 0;
+      consumerAmountsMap[c.participantId] = consumerFmt === 'cents' ? v / 100 : v;
     });
   } else {
     consumers.forEach(c => {
@@ -1058,18 +1121,35 @@ function _formFromExpense(expense, trip) {
   const payerSharesMap  = {};
   const payerAmountsMap = {};
 
-  const payerValues    = payers.map(p => p.sharesPaid ?? 1);
-  const payersInAmounts = _detectAmountsMode(payerValues, amountCents);
+  const savedPayerMode  = splitMeta?.payerMode ?? null;
+  const payerValues     = payers.map(p => p.sharesPaid ?? 1);
+  let   payersInAmounts = false;
+  let   payerFmt        = null;
+
+  if (savedPayerMode === 'amounts') {
+    payersInAmounts = true;
+    payerFmt        = _detectAmountsValues(payerValues, amountCents, true);
+  } else if (!savedPayerMode) {
+    // Spesa vecchia senza splitMeta — auto-detect con fallback legacy
+    payerFmt        = _detectAmountsValues(payerValues, amountCents, false);
+    payersInAmounts = payerFmt !== null;
+  }
 
   if (payersInAmounts) {
     payers.forEach(p => {
-      payerAmountsMap[p.participantId] = (p.sharesPaid ?? 0) / 100;
+      const v = p.sharesPaid ?? 0;
+      payerAmountsMap[p.participantId] = payerFmt === 'cents' ? v / 100 : v;
     });
   } else {
     payers.forEach(p => {
       payerSharesMap[p.participantId] = Math.max(1, p.sharesPaid ?? 1);
     });
   }
+
+  // consumerMode: se splitMeta è presente usa quello, altrimenti inferisce
+  const consumerMode = consumersInAmounts
+    ? 'amounts'
+    : (savedConsumerMode ?? 'shares');
 
   return {
     title:    expense.title,
@@ -1079,14 +1159,14 @@ function _formFromExpense(expense, trip) {
     notes:    expense.notes ?? '',
     // Consumers
     consumerPreset:     'custom',
-    consumerMode:       consumersInAmounts ? 'amounts' : 'shares',
+    consumerMode,
     consumerPids:       consumers.map(c => c.participantId),
     sharesMap,
     consumerAmountsMap,
     // Payers
     payerPids:       payers.map(p => p.participantId),
     payerSharesMap,
-    payerMode:       payersInAmounts ? 'amounts' : 'shares',
+    payerMode:       payersInAmounts ? 'amounts' : (savedPayerMode ?? 'shares'),
     payerAmountsMap,
     // Transport (mai pre-compilato in edit mode)
     transportSync:  false,

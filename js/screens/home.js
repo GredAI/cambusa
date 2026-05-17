@@ -2,7 +2,7 @@ import { State }     from '../state.js';
 import { Actions }   from '../actions.js';
 import { Router }    from '../router.js';
 import { Selectors } from '../selectors.js';
-import { Topbar, BottomNav } from '../ui.js';
+import { Topbar, BottomNav, CambusaLogo } from '../ui.js';
 import { Toast }     from '../toast.js';
 
 export const HomeScreen = {
@@ -58,6 +58,7 @@ export const HomeScreen = {
         ${Topbar({
           title:    'Cambusa',
           subtitle: 'Le tue avventure',
+          logo:     CambusaLogo({ size: '36px' }),
           right:    `<button class="fab-mini" data-action="new-trip">+</button>`,
         })}
         <main class="screen-content">

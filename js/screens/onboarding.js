@@ -5,8 +5,9 @@
    e nessun viaggio esistente.
    ===================================================== */
 
-import { Actions } from '../actions.js';
-import { Router }  from '../router.js';
+import { Actions }      from '../actions.js';
+import { Router }       from '../router.js';
+import { CambusaLogo }  from '../ui.js';
 
 export const OnboardingScreen = {
 
@@ -17,8 +18,11 @@ export const OnboardingScreen = {
 
           <!-- Hero -->
           <div class="onboarding-hero">
-            <div class="onboarding-icon">⚓</div>
+            <div class="onboarding-logo-wrap">
+              ${CambusaLogo({ size: '96px', bg: '#ffffff', extraClass: 'onboarding-logo' })}
+            </div>
             <h1 class="onboarding-title">Cambusa</h1>
+            <p class="onboarding-tagline">La cassa comune dell'equipaggio</p>
             <p class="onboarding-sub">
               Spese condivise per i tuoi viaggi,<br>senza stress.
             </p>

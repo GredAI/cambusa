@@ -2,30 +2,38 @@
    CAMBUSA — Design System & Stili Base
    ===================================================== */
 
+/* ── Font brand: Sora ─────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap');
+
 /* ── Variabili ────────────────────────────────────────── */
 :root {
-  /* Superfici */
-  --color-bg:           #f5f5f4;
+  /* Superfici — warm off-white brand */
+  --color-bg:           #f7f2ec;
   --color-surface:      #ffffff;
-  --color-surface-alt:  #fafaf9;
+  --color-surface-alt:  #fdf9f5;
 
-  /* Testo */
-  --color-text:         #1c1917;
-  --color-text-sub:     #78716c;
-  --color-text-muted:   #a8a29e;
+  /* Testo — navy brand */
+  --color-text:         #1d3844;
+  --color-text-sub:     #5a7a85;
+  --color-text-muted:   #93b0b9;
 
-  /* Primario */
-  --color-primary:      #10b981;
-  --color-primary-dark: #059669;
-  --color-primary-bg:   #ecfdf5;
+  /* Primario — teal brand */
+  --color-primary:      #4eb5a5;
+  --color-primary-dark: #3a9d8e;
+  --color-primary-bg:   #edf7f6;
+
+  /* Accento coral brand */
+  --color-accent:       #f47461;
+  --color-accent-dark:  #d95e4c;
+  --color-accent-bg:    #fef2f0;
 
   /* Danger */
   --color-danger:       #ef4444;
   --color-danger-dark:  #dc2626;
 
   /* Bordi */
-  --color-border:       #e7e5e4;
-  --color-border-light: #f5f5f4;
+  --color-border:       #e8e0d6;
+  --color-border-light: #f2ede7;
 
   /* Categorie */
   --cat-alloggio:       #d4a96a;   /* Sabbia  */
@@ -34,8 +42,8 @@
   --cat-trasporti-bg:   #eff6ff;
   --cat-noleggi:        #f97316;   /* Arancione */
   --cat-noleggi-bg:     #fff7ed;
-  --cat-cibo:           #10b981;   /* Verde   */
-  --cat-cibo-bg:        #ecfdf5;
+  --cat-cibo:           #4eb5a5;   /* Teal brand */
+  --cat-cibo-bg:        #edf7f6;
   --cat-attivita:       #8b5cf6;   /* Viola   */
   --cat-attivita-bg:    #f5f3ff;
   --cat-servizi:        #6b7280;   /* Grigio  */
@@ -77,7 +85,7 @@ html, body {
 
 body {
   background: var(--color-bg);
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  font-family: 'Sora', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
 }
@@ -236,8 +244,21 @@ body {
 .topbar--back {
   gap: 10px;
 }
+.topbar--logo {
+  gap: 12px;
+}
+.topbar__logo {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.topbar__logo .cambusa-logo {
+  display: block;
+  /* leggera ombra per separare il logo dallo sfondo */
+  filter: drop-shadow(0 1px 3px rgba(29,56,68,0.15));
+}
 .topbar__text { flex: 1; }
-.topbar__title { font-size: 24px; font-weight: 800; letter-spacing: -0.3px; }
+.topbar__title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
 .topbar__sub   { color: var(--color-text-sub); font-size: 13px; margin-top: 2px; }
 .topbar__badge {
   background: var(--color-bg);
@@ -398,8 +419,8 @@ body {
   border-radius: 8px;
 }
 .amt-tag--paid {
-  background: #ecfdf5;
-  color: #059669;
+  background: #edf7f6;
+  color: #3a9d8e;
 }
 .amt-tag--cons {
   background: #fef3c7;
@@ -424,7 +445,7 @@ body {
 .balance-pill__chevron { color: var(--color-text-muted); font-size: 18px; line-height: 1; flex-shrink: 0; }
 
 .balance-status { font-size: 13px; font-weight: 500; }
-.balance-status--positive { color: #059669; }
+.balance-status--positive { color: #3a9d8e; }
 .balance-status--negative { color: #d97706; }
 .balance-status--even     { color: var(--color-text-muted); }
 
@@ -554,8 +575,8 @@ body {
 .confirmed-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #059669;
-  background: #d1fae5;
+  color: #3a9d8e;
+  background: #d0f0ec;
   padding: 3px 8px;
   border-radius: 20px;
   flex-shrink: 0;
@@ -932,7 +953,7 @@ body {
   color: var(--color-text-muted);
   white-space: nowrap;
 }
-.expense-breakdown__quota--payer { color: var(--color-positive, #10b981); }
+.expense-breakdown__quota--payer { color: var(--color-positive, #4eb5a5); }
 
 /* Totali categoria */
 .cat-totals { margin-top: 8px; }
@@ -1365,7 +1386,7 @@ body {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: #d1fae5;
+  background: #d0f0ec;
 }
 .ocr-icon { font-size: 18px; }
 .ocr-card__title {
@@ -2163,17 +2184,37 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
   text-align: center;
 }
 
-.onboarding-icon {
-  font-size: 72px;
-  line-height: 1;
+/* Logo wrap: cerchio bianco con ombra */
+.onboarding-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 120px;
+  background: var(--color-surface);
+  border-radius: 50%;
+  box-shadow: 0 8px 32px rgba(29,56,68,0.14);
   margin-bottom: 4px;
+}
+
+.onboarding-logo {
+  display: block;
 }
 
 .onboarding-title {
   font-size: 42px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: -1.5px;
   color: var(--color-text);
+}
+
+.onboarding-tagline {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-primary);
+  opacity: 0.85;
 }
 
 .onboarding-sub {
@@ -2245,22 +2286,22 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
 
 /* ── Dark mode ────────────────────────────────────────── */
 html[data-theme="dark"] {
-  /* Superfici */
-  --color-bg:           #1c1917;
-  --color-surface:      #292524;
-  --color-surface-alt:  #1c1917;
+  /* Superfici — fondi scuri caldi (brand navy) */
+  --color-bg:           #111e24;
+  --color-surface:      #192830;
+  --color-surface-alt:  #111e24;
 
   /* Testo */
-  --color-text:         #fafaf9;
-  --color-text-sub:     #a8a29e;
-  --color-text-muted:   #78716c;
+  --color-text:         #f0ece6;
+  --color-text-sub:     #8aabB5;
+  --color-text-muted:   #5a7a85;
 
   /* Bordi */
-  --color-border:       #44403c;
-  --color-border-light: #292524;
+  --color-border:       #273e49;
+  --color-border-light: #192830;
 
-  /* Primario */
-  --color-primary-bg:   rgba(16, 185, 129, 0.15);
+  /* Primario — teal resta leggibile su scuro */
+  --color-primary-bg:   rgba(78, 181, 165, 0.15);
 
   /* Ombre più marcate */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
@@ -2270,7 +2311,7 @@ html[data-theme="dark"] {
   --cat-alloggio-bg:   rgba(212,169,106,0.15);
   --cat-trasporti-bg:  rgba(59,130,246,0.15);
   --cat-noleggi-bg:    rgba(249,115,22,0.15);
-  --cat-cibo-bg:       rgba(16,185,129,0.15);
+  --cat-cibo-bg:       rgba(78,181,165,0.15);
   --cat-attivita-bg:   rgba(139,92,246,0.15);
   --cat-servizi-bg:    rgba(107,114,128,0.15);
 }

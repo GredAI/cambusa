@@ -4,6 +4,29 @@
    Topbar(), BottomNav()
    ===================================================== */
 
+// ── Logo SVG ──────────────────────────────────────────────
+/**
+ * Logomark "C" di Cambusa — anello diviso in tre archi brand.
+ *
+ * @param {object} opts
+ * @param {string} [opts.size]       CSS width/height (default '40px')
+ * @param {string} [opts.bg]         colore sfondo cerchio opzionale (default: none)
+ * @param {string} [opts.extraClass] classe CSS aggiuntiva
+ */
+export function CambusaLogo({ size = '40px', bg = '', extraClass = '' } = {}) {
+  const bgCircle = bg
+    ? `<circle cx="50" cy="50" r="50" fill="${bg}"/>`
+    : '';
+  return `
+    <svg class="cambusa-logo ${extraClass}" xmlns="http://www.w3.org/2000/svg"
+         viewBox="0 0 100 100" width="${size}" height="${size}" aria-label="Cambusa">
+      ${bgCircle}
+      <path d="M 81.703 79.05 A 43 43 0 0 1 52.25 92.941 L 51.178 72.469 A 22.5 22.5 0 0 0 66.589 65.201 Z" fill="#4EB5A5"/>
+      <path d="M 48.124 92.959 A 43 43 0 1 1 52.625 7.08 L 51.374 27.542 A 22.5 22.5 0 1 0 49.019 72.479 Z" fill="#1D3844"/>
+      <path d="M 56.727 7.529 A 43 43 0 0 1 81.703 20.95 L 66.589 34.799 A 22.5 22.5 0 0 0 53.52 27.777 Z" fill="#F47461"/>
+    </svg>`;
+}
+
 // ── Theme ─────────────────────────────────────────────────
 /**
  * Applica il tema chiaro/scuro impostando data-theme su <html>.
@@ -42,14 +65,16 @@ export const Render = {
  * @param {object} opts
  * @param {string}  opts.title
  * @param {string}  [opts.subtitle]
+ * @param {string}  [opts.logo]      - HTML SVG logo opzionale (prima del titolo)
  * @param {boolean} [opts.back]      - mostra freccia ←
  * @param {string}  [opts.backNav]   - screen a cui torna (default: 'home')
  * @param {string}  [opts.right]     - HTML opzionale a destra
  */
-export function Topbar({ title, subtitle = '', back = false, backNav = 'home', right = '' } = {}) {
+export function Topbar({ title, subtitle = '', logo = '', back = false, backNav = 'home', right = '' } = {}) {
   return `
-    <header class="topbar ${back ? 'topbar--back' : ''}">
+    <header class="topbar ${back ? 'topbar--back' : ''} ${logo ? 'topbar--logo' : ''}">
       ${back ? `<button class="btn-back" data-nav="${backNav}">←</button>` : ''}
+      ${logo ? `<div class="topbar__logo">${logo}</div>` : ''}
       <div class="topbar__text">
         <h1 class="topbar__title">${title}</h1>
         ${subtitle ? `<p class="topbar__sub">${subtitle}</p>` : ''}

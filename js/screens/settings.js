@@ -9,7 +9,7 @@ import { Router }  from '../router.js';
 import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
 
-const APP_VERSION = 'v61';
+const APP_VERSION = 'v68';
 
 const CURRENCIES = ['€', '$', '£', 'CHF', '¥', 'kr'];
 
