@@ -26,6 +26,7 @@ import { readAmount } from '../domain/guards.js';
 import { participantAvatar } from '../components/avatar.js';
 import { OCR }        from '../ocr.js';
 import { parseReceipt } from '../domain/ocrParser.js';
+import { maybeAutoBackup } from '../autoBackup.js';
 
 const CATEGORIES = [
   { id: 'cibo',      icon: '🍝', label: 'Cibo'      },
@@ -777,6 +778,9 @@ async function _handleSave(trip) {
     const label  = tType === 'andata' ? 'arrivo' : 'partenza';
     Toast.show(`📅 Date ${label} aggiornate`, { type: 'success' });
   }
+
+  // Backup automatico silenzioso (una volta al giorno)
+  maybeAutoBackup();
 
   const dest = _editExpenseId ? 'expenses' : 'trip';
   _reset();
