@@ -616,16 +616,11 @@ function _bindPayerEvents(trip) {
       if (idx === -1) {
         _form.payerPids.push(pid);
         if (!_form.payerSharesMap[pid]) _form.payerSharesMap[pid] = 1;
-        // In amounts mode: pre-compila con l'importo rimanente
-        if (_form.payerMode === 'amounts') {
-          const total    = parseFloat(_form.amount) || 0;
-          const already  = _form.payerPids
-            .filter(p => p !== pid)
-            .reduce((s, p) => s + (parseFloat(_form.payerAmountsMap[p]) || 0), 0);
-          _form.payerAmountsMap[pid] = Math.max(0, parseFloat((total - already).toFixed(2)));
-        }
+        // In amounts mode: non pre-compilare, l'utente inserisce o usa "Distribuisci"
       } else {
-        if (_form.payerPids.length <= 1) return; // almeno 1 payer
+        // In modalità quote: almeno 1 payer obbligatorio
+        // In modalità importo: si può svuotare la lista (si ricostruisce a mano o con Distribuisci)
+        if (_form.payerMode === 'shares' && _form.payerPids.length <= 1) return;
         _form.payerPids.splice(idx, 1);
         delete _form.payerSharesMap[pid];
         delete _form.payerAmountsMap[pid];
