@@ -696,14 +696,16 @@ function _distributeRemainingToConsumers(trip) {
   const remaining = Math.round((total - assigned) * 100) / 100;
   if (remaining < 0.01) return;
 
-  // Solo i consumatori che NON hanno già un importo versato
-  const pids = _form.consumerPids.filter(
+  // Solo i payers SELEZIONATI che non hanno ancora un importo versato.
+  // I genitori (o chiunque deselezionato dai pagatori) vengono ignorati.
+  const pids = _form.payerPids.filter(
     pid => !(parseFloat(_form.payerAmountsMap[pid]) > 0)
   );
   if (!pids.length) return;
 
-  // Peso proporzionale alle quote impostate in "Chi consuma"
+  // Peso proporzionale alle quote di consumo dei singoli payers
   const weights = pids.map(pid => {
+    if (!_form.consumerPids.includes(pid)) return 1; // payer non è consumer → peso neutro
     if (_form.consumerMode === 'amounts') return parseFloat(_form.consumerAmountsMap[pid]) || 1;
     return _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1);
   });
