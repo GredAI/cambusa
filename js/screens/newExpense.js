@@ -58,10 +58,11 @@ function _emptyForm(trip) {
     date:            _today(),
     notes:           '',
     // Consumers
-    consumerPreset:  'tutti',   // 'tutti' | 'presenti' | 'custom'
-    consumerMode:    'shares',  // 'equal' | 'shares'
-    consumerPids:    trip.participants.map(p => p.id),
+    consumerPreset:      'tutti',   // 'tutti' | 'presenti' | 'custom'
+    consumerMode:        'shares',  // 'equal' | 'shares' | 'amounts'
+    consumerPids:        trip.participants.map(p => p.id),
     sharesMap,
+    consumerAmountsMap:  {},        // { pid: euroAmount } — usato solo in mode 'amounts'
     // Payers
     payerPids:        firstPid ? [firstPid] : [],
     payerSharesMap,
@@ -262,18 +263,27 @@ export const NewExpenseScreen = {
 // ── Render sezione consumers ──────────────────────────
 function _renderConsumers(trip) {
   const amount      = parseFloat(_form.amount) || 0;
-  const isShares    = _form.consumerMode === 'shares';
+  const mode        = _form.consumerMode;
+  const isShares    = mode === 'shares';
+  const isAmounts   = mode === 'amounts';
   const totalShares = _calcConsumerShares();
-  const perUnit     = totalShares > 0 && amount
-    ? ` · ${(amount / totalShares).toFixed(2)}${trip.currency}/${isShares ? 'q' : 'pers.'}`
-    : '';
+
+  // Summary dinamico per modalità
+  let summaryHtml;
+  if (isAmounts) {
+    const { text, cls } = _consumerBalanceInfo(trip);
+    summaryHtml = `<span class="section-sub ${cls}" id="consumer-summary">${text}</span>`;
+  } else {
+    const perUnit = totalShares > 0 && amount
+      ? ` · ${(amount / totalShares).toFixed(2)}${trip.currency}/${isShares ? 'q' : 'pers.'}`
+      : '';
+    summaryHtml = `<span class="section-sub" id="consumer-summary">${_form.consumerPids.length} partecipanti${perUnit}</span>`;
+  }
 
   return `
     <div class="section-header">
       <label class="field-label" style="margin:0">Chi consuma</label>
-      <span class="section-sub" id="consumer-summary">
-        ${_form.consumerPids.length} partecipanti${perUnit}
-      </span>
+      ${summaryHtml}
     </div>
 
     <div class="split-presets" id="consumer-presets">
@@ -290,23 +300,51 @@ function _renderConsumers(trip) {
     </div>
 
     <div class="split-mode-toggle" id="consumer-mode">
-      <button class="split-mode-btn ${_form.consumerMode === 'equal'  ? 'split-mode-btn--active' : ''}"
+      <button class="split-mode-btn ${mode === 'equal'   ? 'split-mode-btn--active' : ''}"
               data-cmode="equal">= Uguale</button>
-      <button class="split-mode-btn ${_form.consumerMode === 'shares' ? 'split-mode-btn--active' : ''}"
+      <button class="split-mode-btn ${mode === 'shares'  ? 'split-mode-btn--active' : ''}"
               data-cmode="shares">⚖ Quote</button>
+      <button class="split-mode-btn ${mode === 'amounts' ? 'split-mode-btn--active' : ''}"
+              data-cmode="amounts">✏ Importo</button>
     </div>
 
     <div id="consumer-rows">
-      ${trip.participants.map(p => _renderConsumerRow(p)).join('')}
+      ${trip.participants.map(p => _renderConsumerRow(p, trip)).join('')}
     </div>`;
 }
 
-function _renderConsumerRow(p) {
+function _renderConsumerRow(p, trip) {
   const isSelected = _form.consumerPids.includes(p.id);
   const isCustom   = _form.consumerPreset === 'custom';
-  const isShares   = _form.consumerMode === 'shares';
+  const mode       = _form.consumerMode;
+  const isShares   = mode === 'shares';
+  const isAmounts  = mode === 'amounts';
   const shares     = _form.sharesMap[p.id] ?? 1;
 
+  // Modalità importo esatto
+  if (isAmounts) {
+    const amtVal = isSelected && _form.consumerAmountsMap[p.id] != null
+      ? _form.consumerAmountsMap[p.id]
+      : '';
+    return `
+      <div class="split-row ${!isSelected ? 'split-row--off' : ''}">
+        <button class="split-toggle ${isSelected ? 'split-toggle--on' : ''}"
+                data-ctoggle="${p.id}" ${!isCustom ? 'disabled' : ''}>
+          ${participantAvatar(p, 'avatar--sm')}
+          <span class="split-row__name">${p.name}</span>
+          ${isSelected ? '<span class="split-check">✓</span>' : ''}
+        </button>
+        ${isSelected ? `
+          <div class="payer-amt-wrap">
+            <span class="payer-amt-currency">${trip?.currency ?? '€'}</span>
+            <input class="payer-amt-input" type="number" inputmode="decimal"
+                   data-camt="${p.id}" placeholder="0.00"
+                   value="${amtVal}" min="0" step="0.01" />
+          </div>` : ''}
+      </div>`;
+  }
+
+  // Modalità quote / uguale
   let rightContent = '';
   if (isSelected && isShares) {
     rightContent = `
@@ -407,6 +445,19 @@ function _renderPayerRow(p, multiPayer, payerMode, trip) {
     </div>`;
 }
 
+// Balance indicator consumers (modalità importo esatto)
+function _consumerBalanceInfo(trip) {
+  const total    = parseFloat(_form.amount) || 0;
+  const assigned = _form.consumerPids.reduce(
+    (s, pid) => s + (parseFloat(_form.consumerAmountsMap[pid]) || 0), 0);
+  const diff = total - assigned;
+  const cur  = trip?.currency ?? '€';
+  if (total === 0) return { text: '—', cls: '' };
+  if (Math.abs(diff) < 0.005) return { text: '✓ Bilanciato', cls: 'text-positive' };
+  if (diff > 0) return { text: `Mancano ${diff.toFixed(2)}${cur}`, cls: 'text-negative' };
+  return { text: `Eccesso ${(-diff).toFixed(2)}${cur}`, cls: 'text-negative' };
+}
+
 // Calcola testo + classe per il balance indicator in modalità importo
 function _payerBalanceInfo(trip) {
   const total    = parseFloat(_form.amount) || 0;
@@ -434,15 +485,25 @@ function _refreshPayers(trip) {
 }
 
 function _refreshConsumerSummary() {
-  const trip     = State.currentTrip;
+  const trip = State.currentTrip;
+  const el   = document.getElementById('consumer-summary');
+  if (!el) return;
+
+  if (_form.consumerMode === 'amounts') {
+    const { text, cls } = _consumerBalanceInfo(trip);
+    el.textContent = text;
+    el.className   = `section-sub ${cls}`;
+    return;
+  }
+
   const amount   = parseFloat(_form.amount) || 0;
   const isShares = _form.consumerMode === 'shares';
   const total    = _calcConsumerShares();
   const perUnit  = total > 0 && amount
     ? ` · ${(amount / total).toFixed(2)}${trip?.currency ?? '€'}/${isShares ? 'q' : 'pers.'}`
     : '';
-  const el = document.getElementById('consumer-summary');
-  if (el) el.textContent = `${_form.consumerPids.length} partecipanti${perUnit}`;
+  el.className   = 'section-sub';
+  el.textContent = `${_form.consumerPids.length} partecipanti${perUnit}`;
 }
 
 // ── Event binding consumers ───────────────────────────
@@ -461,7 +522,12 @@ function _bindConsumerEvents(trip) {
     ?.addEventListener('click', e => {
       const btn = e.target.closest('[data-cmode]');
       if (!btn) return;
-      _form.consumerMode = btn.dataset.cmode;
+      const newMode = btn.dataset.cmode;
+      // Passando a 'amounts': pre-compila con divisione proporzionale alle quote correnti
+      if (newMode === 'amounts') {
+        _prefillConsumerAmounts(trip);
+      }
+      _form.consumerMode = newMode;
       _refreshConsumers(trip);
     });
 
@@ -475,11 +541,29 @@ function _bindConsumerEvents(trip) {
       if (idx === -1) {
         _form.consumerPids.push(pid);
         if (!(_form.sharesMap[pid] > 0)) _form.sharesMap[pid] = 1;
+        // In amounts mode: pre-compila con il rimanente
+        if (_form.consumerMode === 'amounts') {
+          const total   = parseFloat(_form.amount) || 0;
+          const already = _form.consumerPids
+            .filter(id => id !== pid)
+            .reduce((s, id) => s + (parseFloat(_form.consumerAmountsMap[id]) || 0), 0);
+          _form.consumerAmountsMap[pid] = Math.max(0, parseFloat((total - already).toFixed(2)));
+        }
       } else {
         if (_form.consumerPids.length <= 1) return;
         _form.consumerPids.splice(idx, 1);
+        delete _form.consumerAmountsMap[pid];
       }
       _refreshConsumers(trip);
+    });
+
+  // Input importo diretto (modalità amounts)
+  document.getElementById('consumer-rows')
+    ?.addEventListener('input', e => {
+      const input = e.target.closest('[data-camt]');
+      if (!input) return;
+      _form.consumerAmountsMap[input.dataset.camt] = parseFloat(input.value) || 0;
+      _refreshConsumerSummary();
     });
 
   // Quote stepper
@@ -622,6 +706,21 @@ async function _handleSave(trip) {
   if (_form.consumerPids.length === 0) return Toast.show('Seleziona almeno un consumer', { type: 'error' });
   if (_form.payerPids.length === 0)    return Toast.show('Seleziona chi ha pagato', { type: 'error' });
 
+  // Validazione modalità importo esatto: la somma deve corrispondere all'importo
+  if (_form.consumerMode === 'amounts') {
+    const assigned = _form.consumerPids.reduce(
+      (s, pid) => s + (parseFloat(_form.consumerAmountsMap[pid]) || 0), 0);
+    const diff = Math.abs(amount - assigned);
+    if (diff >= 0.01) {
+      const trip = State.currentTrip;
+      const cur  = trip?.currency ?? '€';
+      const msg  = amount > assigned
+        ? `Mancano ${(amount - assigned).toFixed(2)}${cur} da assegnare`
+        : `Importi in eccesso di ${(assigned - amount).toFixed(2)}${cur}`;
+      return Toast.show(msg, { type: 'error' });
+    }
+  }
+
   const consumers = _buildConsumers();
   const payers    = _buildPayers();
 
@@ -666,6 +765,13 @@ async function _handleSave(trip) {
 // ── Helpers ───────────────────────────────────────────
 
 function _buildConsumers() {
+  if (_form.consumerMode === 'amounts') {
+    // Converte importi in centesimi come peso proporzionale
+    return _form.consumerPids.map(pid => ({
+      participantId: pid,
+      shares: Math.round((_form.consumerAmountsMap[pid] ?? 0) * 100) || 1,
+    }));
+  }
   return _form.consumerPids.map(pid => ({
     participantId: pid,
     shares: _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1),
@@ -689,6 +795,34 @@ function _buildPayers() {
 function _calcConsumerShares() {
   if (_form.consumerMode === 'equal') return _form.consumerPids.length;
   return _form.consumerPids.reduce((s, pid) => s + (_form.sharesMap[pid] ?? 1), 0);
+}
+
+/**
+ * Pre-compila consumerAmountsMap proporzionalmente alle quote correnti.
+ * L'ultimo riceve il residuo per garantire la somma esatta.
+ */
+function _prefillConsumerAmounts(trip) {
+  const total = parseFloat(_form.amount) || 0;
+  const pids  = _form.consumerPids;
+  const n     = pids.length;
+  if (n === 0 || total === 0) return;
+
+  const totalShares = _calcConsumerShares();
+  let remaining = total;
+
+  pids.forEach((pid, i) => {
+    if (i === n - 1) {
+      // Ultimo: prende il residuo (evita errori di arrotondamento)
+      _form.consumerAmountsMap[pid] = Math.round(remaining * 100) / 100;
+    } else {
+      const share = _form.consumerMode === 'equal'
+        ? 1
+        : (_form.sharesMap[pid] ?? 1);
+      const amt = Math.floor((total * share / totalShares) * 100) / 100;
+      _form.consumerAmountsMap[pid] = amt;
+      remaining -= amt;
+    }
+  });
 }
 
 // ── OCR Scontrino ─────────────────────────────────────
@@ -907,10 +1041,11 @@ function _formFromExpense(expense, trip) {
     date:           expense.date,
     notes:          expense.notes ?? '',
     // Consumers
-    consumerPreset: 'custom',
-    consumerMode:   'shares',
-    consumerPids:   consumers.map(c => c.participantId),
+    consumerPreset:     'custom',
+    consumerMode:       'shares',
+    consumerPids:       consumers.map(c => c.participantId),
     sharesMap,
+    consumerAmountsMap: {},
     // Payers
     payerPids:        payers.map(p => p.participantId),
     payerSharesMap,
