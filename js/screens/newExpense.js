@@ -696,14 +696,15 @@ function _distributeRemainingToConsumers(trip) {
   const remaining = Math.round((total - assigned) * 100) / 100;
   if (remaining < 0.01) return;
 
-  const pids = _form.consumerPids;
+  // Solo i consumatori che NON hanno già un importo versato
+  const pids = _form.consumerPids.filter(
+    pid => !(parseFloat(_form.payerAmountsMap[pid]) > 0)
+  );
   if (!pids.length) return;
 
-  // Calcola peso di ogni consumer in base alla modalità
+  // Peso proporzionale alle quote impostate in "Chi consuma"
   const weights = pids.map(pid => {
-    if (_form.consumerMode === 'amounts') {
-      return parseFloat(_form.consumerAmountsMap[pid]) || 1;
-    }
+    if (_form.consumerMode === 'amounts') return parseFloat(_form.consumerAmountsMap[pid]) || 1;
     return _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1);
   });
   const totalWeight = weights.reduce((s, w) => s + w, 0);
@@ -712,15 +713,13 @@ function _distributeRemainingToConsumers(trip) {
   pids.forEach((pid, i) => {
     let share;
     if (i === pids.length - 1) {
-      // Ultimo prende il residuo per evitare errori di arrotondamento
       share = Math.round(left * 100) / 100;
     } else {
       share = Math.floor((remaining * weights[i] / totalWeight) * 100) / 100;
       left  = Math.round((left - share) * 100) / 100;
     }
     if (!_form.payerPids.includes(pid)) _form.payerPids.push(pid);
-    const existing = parseFloat(_form.payerAmountsMap[pid]) || 0;
-    _form.payerAmountsMap[pid] = Math.round((existing + share) * 100) / 100;
+    _form.payerAmountsMap[pid] = share; // SET: non somma, assegna direttamente
   });
 }
 
