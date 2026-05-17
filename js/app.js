@@ -34,10 +34,35 @@ Router._screens = {
 
 // ── Service Worker ────────────────────────────────────────
 if ('serviceWorker' in navigator) {
+  // updateViaCache:'none' impedisce a Safari di cacheare sw.js via HTTP
+  // senza questa opzione Safari non rileva mai i nuovi deployment
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(r  => console.log('[SW] Registrato:', r.scope))
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(reg => {
+        console.log('[SW] Registrato:', reg.scope);
+        // Forza subito il controllo aggiornamenti
+        reg.update().catch(() => {});
+        // Se c'è già un SW in attesa, attivalo subito
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // Intercetta nuovi SW trovati durante la sessione
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      })
       .catch(e => console.warn('[SW] Errore:', e));
+
+    // Ricarica la pagina quando il nuovo SW prende il controllo
+    // così il browser carica i JS/CSS aggiornati
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      console.log('[SW] Nuovo SW attivo — ricarico');
+      window.location.reload();
+    });
   });
 }
 

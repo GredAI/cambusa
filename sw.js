@@ -7,7 +7,7 @@
    • Fallback   → cache se network non disponibile
    ===================================================== */
 
-const CACHE_NAME = 'cambusa-v80';
+const CACHE_NAME = 'cambusa-v81';
 
 const PRECACHE = [
   '/cambusa/',
@@ -15,6 +15,12 @@ const PRECACHE = [
   '/cambusa/manifest.json',
   '/cambusa/css/app.css',
 ];
+
+// ── Message: SKIP_WAITING ────────────────────────────────
+// Ricevuto da app.js per attivare subito il nuovo SW
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
 
 // ── Install ───────────────────────────────────────────────
 self.addEventListener('install', (event) => {
