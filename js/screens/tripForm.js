@@ -199,7 +199,7 @@ export const TripFormScreen = {
       _draft.participants.push({
         id: crypto.randomUUID(), name,
         color: _nextColor(),
-        avatarIndex: _draft.participants.length % 32,  // avatar automatico, modificabile
+        avatarIndex: _draft.participants.length % 47,  // avatar automatico, modificabile
         startDate: null, endDate: null,
       });
       input.value = '';
@@ -394,7 +394,7 @@ function _renderPItem(p) {
 
         <label class="field-label">Avatar</label>
         <div class="avatar-picker">
-          ${Array.from({length: 32}, (_, i) => `
+          ${Array.from({length: 47}, (_, i) => `
             <button class="avatar-pick-btn ${p.avatarIndex === i ? 'avatar-pick-btn--active' : ''}"
                     data-pid="${p.id}" data-avatarindex="${i}"
                     title="Avatar ${i}">

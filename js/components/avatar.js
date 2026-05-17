@@ -7,7 +7,7 @@
    • null / non impostato → lettera iniziale colorata (fallback)
    ===================================================== */
 
-const AVATAR_COUNT = 32;
+const AVATAR_COUNT = 47;
 const AVATAR_BASE  = './assets/avatars/';
 
 /**

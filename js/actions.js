@@ -533,7 +533,7 @@ async function _migrateToV11() {
     trip.participants = trip.participants.map((p, idx) => {
       if (p.avatarIndex === null || p.avatarIndex === undefined) {
         changed = true;
-        return { ...p, avatarIndex: idx % 32 };
+        return { ...p, avatarIndex: idx % 47 };
       }
       return p;
     });
