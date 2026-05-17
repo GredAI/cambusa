@@ -35,8 +35,8 @@ export function participantAvatar(participant, modifier = '') {
   const cls     = ['avatar', modifier].filter(Boolean).join(' ');
 
   if (idx !== null && idx !== undefined) {
-    // Avatar locale
-    return `<div class="${cls}" style="background:#e5e7eb" data-avatar-name="${initial}">
+    // Avatar locale — sfondo = colore del partecipante (visibile sulla trasparenza del PNG)
+    return `<div class="${cls}" style="background:${color}" data-avatar-name="${initial}">
       <img src="${avatarUrl(idx)}" alt="${_h(name)}" class="avatar__img" loading="lazy"
            onerror="this.style.display='none'">
     </div>`;
@@ -63,7 +63,7 @@ export function updateAvatarEl(el, participant) {
   const img = el.querySelector('.avatar__img');
 
   if (idx !== null && idx !== undefined) {
-    el.style.background = '#e5e7eb';
+    el.style.background = color; // colore partecipante come sfondo del PNG trasparente
     if (img) {
       img.src   = avatarUrl(idx);
       img.style.display = '';
