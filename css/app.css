@@ -66,6 +66,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Previene double-tap zoom su iOS Safari su tutti gli elementi interattivi */
+button, a, input, label, select, textarea, [data-action], [data-nav] {
+  touch-action: manipulation;
+}
+
 html, body {
   height: 100%;
 }
