@@ -141,17 +141,14 @@ body {
 
 /* ── Schermate ────────────────────────────────────────── */
 /*
-  .screen è il flex column scroll container.
-  .topbar: position sticky top:0 — rimane visibile in cima.
-  .screen-content: flex:1 — si espande per riempire lo spazio.
-  .bottom-nav: position sticky bottom:0 — rimane visibile in fondo.
+  .screen è il block scroll container (NON flex — iOS Safari bug).
+  .topbar: position sticky top:0.
+  .bottom-nav: position sticky bottom:0.
   Nessun element fixed, nessun overlap, event delegation intatta.
 */
 .screen {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -213,11 +210,7 @@ body {
 }
 
 /* ── Layout schermate ─────────────────────────────────── */
-/*
-  .screen-content cresce per riempire lo spazio tra topbar e bottom-nav.
-*/
 .screen-content {
-  flex: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
