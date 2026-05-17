@@ -264,6 +264,108 @@ body {
   color: #92400e;
 }
 
+/* ── Modalità Con ospiti ──────────────────────────────── */
+.guest-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.guest-row:last-child { border-bottom: none; }
+.guest-row--ospite { opacity: 0.85; }
+
+.guest-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.guest-row__info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.guest-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.guest-quota-hint {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.guest-payer-total {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.guest-toggle-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.guest-toggle--paga {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-dark);
+}
+.guest-toggle--ospite {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Selezione payer per ospite */
+.guest-payer-select {
+  margin-top: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface-alt);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.guest-payer-label {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  white-space: nowrap;
+}
+.guest-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.guest-chip {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.guest-chip--active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+.guest-no-payers {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
 /* Bottone "Distribuisci rimanente per quote" */
 .btn-distribute {
   display: block;

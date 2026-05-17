@@ -68,9 +68,11 @@ function _emptyForm(trip) {
     // Payers
     payerPids:        firstPid ? [firstPid] : [],
     payerSharesMap,
-    payerMode:        'shares',   // 'shares' | 'amounts'
+    payerMode:        'shares',   // 'shares' | 'amounts' | 'guests'
     payerAmountsMap:  {},         // { pid: euroAmount }
     payerPaidMap:     {},         // { pid: bool } — true = già versato, false = da versare
+    guestMap:         {},         // { pid: bool } — true = ospite (non paga)
+    guestPayerMap:    {},         // { guestPid: payerPid } — chi paga per l'ospite
     // Transport date sync (solo categoria 'trasporti')
     transportSync:   false,
     transportType:   'andata',   // 'andata' | 'ritorno'
@@ -377,11 +379,14 @@ function _renderPayers(trip) {
   const multiPayer  = _form.payerPids.length > 1;
   const payerMode   = _form.payerMode;
 
-  // Summary per modalità importo
+  // Summary
   let summaryHtml = '';
   if (payerMode === 'amounts') {
     const { text, cls } = _payerBalanceInfo(trip);
     summaryHtml = `<span class="section-sub ${cls}" id="payer-summary">${text}</span>`;
+  } else if (payerMode === 'guests') {
+    const nGuests = Object.values(_form.guestMap).filter(Boolean).length;
+    if (nGuests) summaryHtml = `<span class="section-sub" id="payer-summary">${nGuests} ospite/i</span>`;
   } else if (multiPayer) {
     summaryHtml = `<span class="section-sub" id="payer-summary">${_form.payerPids.length} paganti</span>`;
   }
@@ -397,10 +402,15 @@ function _renderPayers(trip) {
               data-pmode="shares">Per quote</button>
       <button class="split-mode-btn ${payerMode === 'amounts' ? 'split-mode-btn--active' : ''}"
               data-pmode="amounts">Per importo</button>
+      <button class="split-mode-btn ${payerMode === 'guests'  ? 'split-mode-btn--active' : ''}"
+              data-pmode="guests">Con ospiti</button>
     </div>
 
     <div id="payer-rows">
-      ${trip.participants.map(p => _renderPayerRow(p, multiPayer, payerMode, trip)).join('')}
+      ${payerMode === 'guests'
+        ? _renderGuestRows(trip)
+        : trip.participants.map(p => _renderPayerRow(p, multiPayer, payerMode, trip)).join('')
+      }
     </div>
 
     ${payerMode === 'amounts' ? (() => {
@@ -477,6 +487,92 @@ function _renderPayerRow(p, multiPayer, payerMode, trip) {
           <button class="split-btn" data-pdelta="1"  data-ppid="${p.id}">+</button>
         </div>` : ''}
     </div>`;
+}
+
+// ── Modalità Con ospiti ───────────────────────────────
+
+/** Quota base di un consumer in euro (in base a shares/amounts/equal). */
+function _baseQuota(pid) {
+  const total = parseFloat(_form.amount) || 0;
+  if (!_form.consumerPids.includes(pid)) return 0;
+  if (_form.consumerMode === 'amounts') {
+    return parseFloat(_form.consumerAmountsMap[pid]) || 0;
+  }
+  const totalShares = _calcConsumerShares();
+  if (totalShares === 0) return 0;
+  const myShares = _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1);
+  return Math.round((total * myShares / totalShares) * 100) / 100;
+}
+
+/** Totale che un payer deve versare (propria quota + quote ospiti assegnati). */
+function _payerGuestTotal(payerPid) {
+  let total = _baseQuota(payerPid);
+  for (const [guestPid, assignedPid] of Object.entries(_form.guestPayerMap)) {
+    if (assignedPid === payerPid && _form.guestMap[guestPid]) {
+      total += _baseQuota(guestPid);
+    }
+  }
+  return Math.round(total * 100) / 100;
+}
+
+function _renderGuestRows(trip) {
+  const cur = trip.currency;
+  // Mostra solo i consumers
+  return _form.consumerPids.map(pid => {
+    const p       = trip.participants.find(x => x.id === pid);
+    if (!p) return '';
+    const isGuest    = !!_form.guestMap[pid];
+    const baseQuota  = _baseQuota(pid);
+    const payerTotal = isGuest ? 0 : _payerGuestTotal(pid);
+    const assignedTo = _form.guestPayerMap[pid] ?? null;
+    // Payers disponibili per questo ospite (tutti i non-ospiti tranne sé stesso)
+    const availPayers = _form.consumerPids
+      .filter(id => id !== pid && !_form.guestMap[id])
+      .map(id => trip.participants.find(x => x.id === id))
+      .filter(Boolean);
+
+    // Badge saldo corrente
+    const balObj   = Selectors.participantBalance(pid);
+    const balCents = balObj?.balance ?? 0;
+    const balHtml  = balCents !== 0 ? `
+      <span class="payer-balance-badge ${balCents > 0 ? 'payer-balance--credit' : 'payer-balance--debt'}">
+        ${balCents > 0 ? '+' : ''}${(balCents/100).toFixed(0)}${cur}
+      </span>` : '';
+
+    return `
+      <div class="guest-row ${isGuest ? 'guest-row--ospite' : ''}">
+        <div class="guest-row__main">
+          <div class="guest-row__info">
+            ${participantAvatar(p, 'avatar--sm')}
+            <div class="split-row__name-wrap">
+              <span class="split-row__name">${p.name}</span>
+              <span class="guest-quota-hint">${baseQuota.toFixed(2)}${cur} quota base${balHtml ? ' · ' : ''}${balHtml}</span>
+            </div>
+          </div>
+          <div class="guest-row__actions">
+            ${!isGuest ? `<span class="guest-payer-total">${payerTotal.toFixed(2)}${cur}</span>` : ''}
+            <button class="guest-toggle-btn ${isGuest ? 'guest-toggle--ospite' : 'guest-toggle--paga'}"
+                    data-gtoggle="${pid}">
+              ${isGuest ? '🎫 Ospite' : '✓ Paga'}
+            </button>
+          </div>
+        </div>
+        ${isGuest ? `
+          <div class="guest-payer-select">
+            <span class="guest-payer-label">Pagato da:</span>
+            <div class="guest-chips">
+              ${availPayers.length
+                ? availPayers.map(pp => `
+                    <button class="guest-chip ${assignedTo === pp.id ? 'guest-chip--active' : ''}"
+                            data-gpayer="${pid}" data-gpayerid="${pp.id}">
+                      ${pp.name}
+                    </button>`).join('')
+                : `<span class="guest-no-payers">Nessun pagatore disponibile</span>`
+              }
+            </div>
+          </div>` : ''}
+      </div>`;
+  }).join('');
 }
 
 // Balance indicator consumers (modalità importo esatto)
@@ -672,6 +768,35 @@ function _bindPayerEvents(trip) {
       _refreshDistributeBtn(trip);
     });
 
+  // Guests mode: toggle paga/ospite
+  document.getElementById('payer-rows')
+    ?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-gtoggle]');
+      if (!btn) return;
+      const pid = btn.dataset.gtoggle;
+      _form.guestMap[pid] = !_form.guestMap[pid];
+      // Se diventa payer, rimuovi da guestPayerMap
+      if (!_form.guestMap[pid]) delete _form.guestPayerMap[pid];
+      // Se diventa ospite, rimuovi eventuali ospiti che erano assegnati a lui
+      if (_form.guestMap[pid]) {
+        for (const [gPid, pPid] of Object.entries(_form.guestPayerMap)) {
+          if (pPid === pid) delete _form.guestPayerMap[gPid];
+        }
+      }
+      _refreshPayers(trip);
+    });
+
+  // Guests mode: assegna ospite a payer
+  document.getElementById('payer-rows')
+    ?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-gpayer]');
+      if (!btn) return;
+      const guestPid = btn.dataset.gpayer;
+      const payerPid = btn.dataset.gpayerid;
+      _form.guestPayerMap[guestPid] = payerPid;
+      _refreshPayers(trip);
+    });
+
   // Toggle versato / da versare
   document.getElementById('payer-rows')
     ?.addEventListener('click', e => {
@@ -840,6 +965,23 @@ async function _handleSave(trip) {
     }
   }
 
+  // Validazione modalità Con ospiti
+  if (_form.payerMode === 'guests') {
+    const unassignedGuests = _form.consumerPids.filter(
+      pid => _form.guestMap[pid] && !_form.guestPayerMap[pid]
+    );
+    if (unassignedGuests.length) {
+      const names = unassignedGuests
+        .map(pid => State.currentTrip?.participants.find(p => p.id === pid)?.name ?? pid)
+        .join(', ');
+      return Toast.show(`Assegna chi paga per: ${names}`, { type: 'error' });
+    }
+    const nonGuestCount = _form.consumerPids.filter(pid => !_form.guestMap[pid]).length;
+    if (nonGuestCount === 0) {
+      return Toast.show('Ci deve essere almeno un pagatore', { type: 'error' });
+    }
+  }
+
   const consumers = _buildConsumers();
   const payers    = _buildPayers();
 
@@ -854,6 +996,12 @@ async function _handleSave(trip) {
     splitMeta: {
       payerMode:    _form.payerMode,
       consumerMode: _form.consumerMode,
+      // Salva mappa ospiti per ricostruzione in edit mode
+      guests: _form.payerMode === 'guests'
+        ? Object.entries(_form.guestPayerMap)
+            .filter(([gPid]) => _form.guestMap[gPid])
+            .map(([guestId, payerId]) => ({ guestId, payerId }))
+        : undefined,
     },
   };
 
@@ -905,17 +1053,27 @@ function _buildConsumers() {
 }
 
 function _buildPayers() {
+  if (_form.payerMode === 'guests') {
+    // Solo i consumatori non-ospiti; il loro importo include le quote degli ospiti assegnati
+    return _form.consumerPids
+      .filter(pid => !_form.guestMap[pid])
+      .map(pid => ({
+        participantId: pid,
+        sharesPaid: _payerGuestTotal(pid) || 0.01,
+        paid: _form.payerPaidMap[pid] !== false,
+      }));
+  }
   if (_form.payerMode === 'amounts') {
     return _form.payerPids.map(pid => ({
       participantId: pid,
       sharesPaid: Math.round((_form.payerAmountsMap[pid] ?? 0) * 100) / 100 || 0.01,
-      paid: _form.payerPaidMap[pid] !== false, // default true
+      paid: _form.payerPaidMap[pid] !== false,
     }));
   }
   return _form.payerPids.map(pid => ({
     participantId: pid,
     sharesPaid: _form.payerSharesMap[pid] ?? 1,
-    paid: true, // in modalità quote si assume sempre versato
+    paid: true,
   }));
 }
 
@@ -1261,9 +1419,17 @@ function _formFromExpense(expense, trip) {
 
   // Ricostruisce payerPaidMap da expense salvata
   const payerPaidMap = {};
-  payers.forEach(p => {
-    payerPaidMap[p.participantId] = p.paid !== false; // default true
-  });
+  payers.forEach(p => { payerPaidMap[p.participantId] = p.paid !== false; });
+
+  // Ricostruisce guestMap e guestPayerMap (modalità guests)
+  const guestMap      = {};
+  const guestPayerMap = {};
+  if (splitMeta?.payerMode === 'guests' && expense.splitMeta?.guests) {
+    for (const g of (expense.splitMeta.guests ?? [])) {
+      guestMap[g.guestId]      = true;
+      guestPayerMap[g.guestId] = g.payerId;
+    }
+  }
 
   return {
     title:    expense.title,
@@ -1280,9 +1446,13 @@ function _formFromExpense(expense, trip) {
     // Payers
     payerPids:       payers.map(p => p.participantId),
     payerSharesMap,
-    payerMode:       payersInAmounts ? 'amounts' : (savedPayerMode ?? 'shares'),
+    payerMode:       savedPayerMode === 'guests' ? 'guests'
+                   : payersInAmounts ? 'amounts'
+                   : (savedPayerMode ?? 'shares'),
     payerAmountsMap,
     payerPaidMap,
+    guestMap,
+    guestPayerMap,
     // Transport (mai pre-compilato in edit mode)
     transportSync:  false,
     transportType:  'andata',
