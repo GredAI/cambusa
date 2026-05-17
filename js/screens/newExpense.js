@@ -399,7 +399,19 @@ function _renderPayers(trip) {
 
     <div id="payer-rows">
       ${trip.participants.map(p => _renderPayerRow(p, multiPayer, payerMode, trip)).join('')}
-    </div>`;
+    </div>
+
+    ${payerMode === 'amounts' ? (() => {
+      const total    = parseFloat(_form.amount) || 0;
+      const assigned = _form.payerPids.reduce(
+        (s, pid) => s + (parseFloat(_form.payerAmountsMap[pid]) || 0), 0);
+      const remaining = Math.round((total - assigned) * 100) / 100;
+      if (remaining < 0.01) return '';
+      return `
+        <button class="btn-distribute" data-action="distribute-remaining">
+          ↗ Distribuisci ${remaining.toFixed(2)}${trip.currency} per quote
+        </button>`;
+    })() : ''}`;
 }
 
 function _renderPayerRow(p, multiPayer, payerMode, trip) {
@@ -641,7 +653,27 @@ function _bindPayerEvents(trip) {
       const pid = input.dataset.pamt;
       _form.payerAmountsMap[pid] = parseFloat(input.value) || 0;
       _refreshPayerSummary(trip);
+      _refreshDistributeBtn(trip);
     });
+
+  // Bottone "Distribuisci rimanente per quote"
+  document.getElementById('card-payers')
+    ?.addEventListener('click', e => {
+      if (!e.target.closest('[data-action="distribute-remaining"]')) return;
+      _distributeRemainingToConsumers(trip);
+      _refreshPayers(trip);
+    });
+}
+
+function _refreshDistributeBtn(trip) {
+  const btn = document.querySelector('[data-action="distribute-remaining"]');
+  const total    = parseFloat(_form.amount) || 0;
+  const assigned = _form.payerPids.reduce(
+    (s, pid) => s + (parseFloat(_form.payerAmountsMap[pid]) || 0), 0);
+  const remaining = Math.round((total - assigned) * 100) / 100;
+  if (!btn && remaining >= 0.01) { _refreshPayers(trip); return; }
+  if (btn && remaining < 0.01)  { _refreshPayers(trip); return; }
+  if (btn) btn.textContent = `↗ Distribuisci ${remaining.toFixed(2)}${trip?.currency ?? '€'} per quote`;
 }
 
 function _refreshPayerSummary(trip) {
@@ -651,6 +683,45 @@ function _refreshPayerSummary(trip) {
   const { text, cls } = _payerBalanceInfo(trip);
   el.textContent = text;
   el.className   = `section-sub ${cls}`;
+}
+
+/**
+ * Distribuisce il rimanente tra i consumatori (quelli non esclusi)
+ * proporzionalmente alle loro quote, aggiungendolo all'importo già pagato.
+ */
+function _distributeRemainingToConsumers(trip) {
+  const total    = parseFloat(_form.amount) || 0;
+  const assigned = _form.payerPids.reduce(
+    (s, pid) => s + (parseFloat(_form.payerAmountsMap[pid]) || 0), 0);
+  const remaining = Math.round((total - assigned) * 100) / 100;
+  if (remaining < 0.01) return;
+
+  const pids = _form.consumerPids;
+  if (!pids.length) return;
+
+  // Calcola peso di ogni consumer in base alla modalità
+  const weights = pids.map(pid => {
+    if (_form.consumerMode === 'amounts') {
+      return parseFloat(_form.consumerAmountsMap[pid]) || 1;
+    }
+    return _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1);
+  });
+  const totalWeight = weights.reduce((s, w) => s + w, 0);
+
+  let left = remaining;
+  pids.forEach((pid, i) => {
+    let share;
+    if (i === pids.length - 1) {
+      // Ultimo prende il residuo per evitare errori di arrotondamento
+      share = Math.round(left * 100) / 100;
+    } else {
+      share = Math.floor((remaining * weights[i] / totalWeight) * 100) / 100;
+      left  = Math.round((left - share) * 100) / 100;
+    }
+    if (!_form.payerPids.includes(pid)) _form.payerPids.push(pid);
+    const existing = parseFloat(_form.payerAmountsMap[pid]) || 0;
+    _form.payerAmountsMap[pid] = Math.round((existing + share) * 100) / 100;
+  });
 }
 
 // ── Preset consumers ──────────────────────────────────
