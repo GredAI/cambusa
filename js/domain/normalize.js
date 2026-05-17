@@ -48,6 +48,7 @@ export function normalizeExpense(tripId, input) {
     payers:       (input.payers ?? []).map(p => ({
       participantId: p.participantId,
       sharesPaid:    (typeof p.sharesPaid === 'number' && p.sharesPaid > 0) ? p.sharesPaid : 1,
+      paid:          p.paid !== false, // true = già versato, false = da versare
     })),
     splitMeta:    input.splitMeta   ?? null,
     deletedAt:    input.deletedAt   ?? null,

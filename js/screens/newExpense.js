@@ -23,6 +23,7 @@ import { Router }    from '../router.js';
 import { Topbar }    from '../ui.js';
 import { Toast }     from '../toast.js';
 import { readAmount } from '../domain/guards.js';
+import { Selectors } from '../selectors.js';
 import { participantAvatar } from '../components/avatar.js';
 import { OCR }        from '../ocr.js';
 import { parseReceipt } from '../domain/ocrParser.js';
@@ -69,6 +70,7 @@ function _emptyForm(trip) {
     payerSharesMap,
     payerMode:        'shares',   // 'shares' | 'amounts'
     payerAmountsMap:  {},         // { pid: euroAmount }
+    payerPaidMap:     {},         // { pid: bool } — true = già versato, false = da versare
     // Transport date sync (solo categoria 'trasporti')
     transportSync:   false,
     transportType:   'andata',   // 'andata' | 'ritorno'
@@ -419,23 +421,42 @@ function _renderPayerRow(p, multiPayer, payerMode, trip) {
   const sharesPaid = _form.payerSharesMap[p.id] ?? 1;
 
   if (payerMode === 'amounts') {
-    const amtVal = isPayer && _form.payerAmountsMap[p.id] != null
-      ? _form.payerAmountsMap[p.id]
-      : '';
+    const amtVal  = isPayer && _form.payerAmountsMap[p.id] != null
+      ? _form.payerAmountsMap[p.id] : '';
+    const isPaid  = isPayer ? (_form.payerPaidMap[p.id] !== false) : true;
+
+    // Saldo corrente del partecipante (in centesimi → euro)
+    const balObj  = Selectors.participantBalance(p.id);
+    const balCents = balObj?.balance ?? 0;
+    const balEuros = balCents / 100;
+    const balHtml  = balCents !== 0 ? `
+      <span class="payer-balance-badge ${balCents > 0 ? 'payer-balance--credit' : 'payer-balance--debt'}">
+        ${balCents > 0 ? '+' : ''}${balEuros.toFixed(0)}€
+      </span>` : '';
+
     return `
       <div class="split-row ${!isPayer ? 'split-row--off' : ''}">
         <button class="split-toggle ${isPayer ? 'split-toggle--on' : ''}"
                 data-ptoggle="${p.id}">
           ${participantAvatar(p, 'avatar--sm')}
-          <span class="split-row__name">${p.name}</span>
+          <div class="split-row__name-wrap">
+            <span class="split-row__name">${p.name}</span>
+            ${balHtml}
+          </div>
           ${isPayer ? '<span class="split-check">✓</span>' : ''}
         </button>
         ${isPayer ? `
-          <div class="payer-amt-wrap">
-            <span class="payer-amt-currency">${trip.currency}</span>
-            <input class="payer-amt-input" type="number" inputmode="decimal"
-                   data-pamt="${p.id}" placeholder="0.00"
-                   value="${amtVal}" min="0" step="0.01" />
+          <div class="payer-amt-col">
+            <div class="payer-amt-wrap">
+              <span class="payer-amt-currency">${trip.currency}</span>
+              <input class="payer-amt-input" type="number" inputmode="decimal"
+                     data-pamt="${p.id}" placeholder="0.00"
+                     value="${amtVal}" min="0" step="0.01" />
+            </div>
+            <button class="payer-status-btn ${isPaid ? 'payer-status--paid' : 'payer-status--pending'}"
+                    data-ppaid="${p.id}" title="${isPaid ? 'Già versato' : 'Da versare'}">
+              ${isPaid ? '✓ Versato' : '⏱ Da versare'}
+            </button>
           </div>` : ''}
       </div>`;
   }
@@ -649,6 +670,19 @@ function _bindPayerEvents(trip) {
       _form.payerAmountsMap[pid] = parseFloat(input.value) || 0;
       _refreshPayerSummary(trip);
       _refreshDistributeBtn(trip);
+    });
+
+  // Toggle versato / da versare
+  document.getElementById('payer-rows')
+    ?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-ppaid]');
+      if (!btn) return;
+      const pid = btn.dataset.ppaid;
+      _form.payerPaidMap[pid] = !(_form.payerPaidMap[pid] !== false);
+      // Aggiorna solo il bottone senza ridisegnare tutta la sezione
+      const isPaid = _form.payerPaidMap[pid] !== false;
+      btn.textContent = isPaid ? '✓ Versato' : '⏱ Da versare';
+      btn.className   = `payer-status-btn ${isPaid ? 'payer-status--paid' : 'payer-status--pending'}`;
     });
 
   // Bottone "Distribuisci rimanente per quote"
@@ -872,15 +906,16 @@ function _buildConsumers() {
 
 function _buildPayers() {
   if (_form.payerMode === 'amounts') {
-    // Salva gli importi in euro direttamente (come _buildConsumers)
     return _form.payerPids.map(pid => ({
       participantId: pid,
       sharesPaid: Math.round((_form.payerAmountsMap[pid] ?? 0) * 100) / 100 || 0.01,
+      paid: _form.payerPaidMap[pid] !== false, // default true
     }));
   }
   return _form.payerPids.map(pid => ({
     participantId: pid,
     sharesPaid: _form.payerSharesMap[pid] ?? 1,
+    paid: true, // in modalità quote si assume sempre versato
   }));
 }
 
@@ -1224,6 +1259,12 @@ function _formFromExpense(expense, trip) {
     ? 'amounts'
     : (savedConsumerMode ?? 'shares');
 
+  // Ricostruisce payerPaidMap da expense salvata
+  const payerPaidMap = {};
+  payers.forEach(p => {
+    payerPaidMap[p.participantId] = p.paid !== false; // default true
+  });
+
   return {
     title:    expense.title,
     amount:   amountEuros,
@@ -1241,6 +1282,7 @@ function _formFromExpense(expense, trip) {
     payerSharesMap,
     payerMode:       payersInAmounts ? 'amounts' : (savedPayerMode ?? 'shares'),
     payerAmountsMap,
+    payerPaidMap,
     // Transport (mai pre-compilato in edit mode)
     transportSync:  false,
     transportType:  'andata',

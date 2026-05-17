@@ -211,6 +211,59 @@ body {
   background: var(--color-primary-dark);
 }
 
+/* Payer row: layout colonna importo + status */
+.payer-amt-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+/* Nome + badge saldo */
+.split-row__name-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+/* Badge saldo corrente */
+.payer-balance-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 20px;
+  line-height: 1.4;
+}
+.payer-balance--credit {
+  background: #d1fae5;
+  color: #065f46;
+}
+.payer-balance--debt {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Toggle versato / da versare */
+.payer-status-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.payer-status--paid {
+  background: #d1fae5;
+  color: #065f46;
+}
+.payer-status--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
 /* Bottone "Distribuisci rimanente per quote" */
 .btn-distribute {
   display: block;
