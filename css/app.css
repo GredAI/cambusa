@@ -18,9 +18,9 @@
   --color-text-muted:   #93b0b9;
 
   /* Primario — teal brand */
-  --color-primary:      #4eb5a5;
-  --color-primary-dark: #3a9d8e;
-  --color-primary-bg:   #edf7f6;
+  --color-primary:      #2fa7a0;
+  --color-primary-dark: #27938c;
+  --color-primary-bg:   #e8f6f5;
 
   /* Accento coral brand */
   --color-accent:       #f47461;
@@ -42,8 +42,8 @@
   --cat-trasporti-bg:   #eff6ff;
   --cat-noleggi:        #f97316;   /* Arancione */
   --cat-noleggi-bg:     #fff7ed;
-  --cat-cibo:           #4eb5a5;   /* Teal brand */
-  --cat-cibo-bg:        #edf7f6;
+  --cat-cibo:           #2fa7a0;   /* Teal brand */
+  --cat-cibo-bg:        #e8f6f5;
   --cat-attivita:       #8b5cf6;   /* Viola   */
   --cat-attivita-bg:    #f5f3ff;
   --cat-servizi:        #6b7280;   /* Grigio  */

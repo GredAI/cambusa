@@ -21,7 +21,7 @@ export function CambusaLogo({ size = '40px', bg = '', extraClass = '' } = {}) {
     <svg class="cambusa-logo ${extraClass}" xmlns="http://www.w3.org/2000/svg"
          viewBox="0 0 100 100" width="${size}" height="${size}" aria-label="Cambusa">
       ${bgCircle}
-      <path d="M 81.703 79.05 A 43 43 0 0 1 52.25 92.941 L 51.178 72.469 A 22.5 22.5 0 0 0 66.589 65.201 Z" fill="#4EB5A5"/>
+      <path d="M 81.703 79.05 A 43 43 0 0 1 52.25 92.941 L 51.178 72.469 A 22.5 22.5 0 0 0 66.589 65.201 Z" fill="#2FA7A0"/>
       <path d="M 48.124 92.959 A 43 43 0 1 1 52.625 7.08 L 51.374 27.542 A 22.5 22.5 0 1 0 49.019 72.479 Z" fill="#1D3844"/>
       <path d="M 56.727 7.529 A 43 43 0 0 1 81.703 20.95 L 66.589 34.799 A 22.5 22.5 0 0 0 53.52 27.777 Z" fill="#F47461"/>
     </svg>`;

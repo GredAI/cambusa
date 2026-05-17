@@ -16,7 +16,14 @@ export const TripScreen = {
 
   html() {
     const trip = State.currentTrip;
-    if (!trip) return '<p class="error">Viaggio non trovato.</p>';
+    if (!trip) return `
+      <div class="screen" id="screen-trip-notfound">
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:100vh;gap:16px;padding:32px;text-align:center">
+          <p style="color:var(--color-text-sub);font-size:15px">Nessun viaggio selezionato.</p>
+          <button class="btn-primary" id="btn-notfound-home">← Torna alla Home</button>
+        </div>
+      </div>`;
 
     const isArchived  = !!trip.archivedAt;
     const total       = Selectors.tripTotal();
@@ -131,6 +138,14 @@ export const TripScreen = {
   },
 
   mount() {
+    // Se viaggio non trovato (es. eliminato), auto-redirect alla home
+    if (!State.currentTrip) {
+      document.getElementById('btn-notfound-home')
+        ?.addEventListener('click', () => Router.go('home'));
+      setTimeout(() => Router.go('home'), 50);
+      return;
+    }
+
     document.getElementById('screen-trip')?.addEventListener('click', async e => {
       const back = e.target.closest('.btn-back');
       if (back) { Router.go('home'); return; }
