@@ -6,10 +6,10 @@
 import { State }   from '../state.js';
 import { Actions } from '../actions.js';
 import { Router }  from '../router.js';
-import { Topbar, BottomNav } from '../ui.js';
+import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
 
-const APP_VERSION = 'v54';
+const APP_VERSION = 'v61';
 
 const CURRENCIES = ['€', '$', '£', 'CHF', '¥', 'kr'];
 
@@ -18,6 +18,7 @@ export const SettingsScreen = {
   html() {
     const settings = State.settings ?? {};
     const defCur   = settings.defaultCurrency ?? '€';
+    const theme    = settings.theme ?? 'light';
     const nTrips   = State.trips.length;
     const nActive  = State.trips.filter(t => !t.archivedAt).length;
     const nArch    = nTrips - nActive;
@@ -43,6 +44,20 @@ export const SettingsScreen = {
               Usata per i nuovi viaggi
             </p>
             <div class="filter-row">${curChips}</div>
+
+            <div class="section-header" style="margin-top:6px">
+              <span class="section-title">Tema</span>
+            </div>
+            <div class="filter-row">
+              <button class="filter-chip ${theme === 'light' ? 'filter-chip--active' : ''}"
+                      data-action="set-theme" data-theme="light">
+                ☀️ Chiaro
+              </button>
+              <button class="filter-chip ${theme === 'dark' ? 'filter-chip--active' : ''}"
+                      data-action="set-theme" data-theme="dark">
+                🌙 Scuro
+              </button>
+            </div>
           </div>
 
           <!-- Dati -->
@@ -150,11 +165,23 @@ export const SettingsScreen = {
       if (curBtn) {
         const currency = curBtn.dataset.currency;
         await Actions.saveSettings({ defaultCurrency: currency });
-        // Aggiorna visivamente senza re-render completo
         screen.querySelectorAll('[data-action="set-currency"]').forEach(b => {
           b.classList.toggle('filter-chip--active', b.dataset.currency === currency);
         });
         Toast.show(`Valuta impostata: ${currency}`, { type: 'success' });
+        return;
+      }
+
+      // Tema chiaro / scuro
+      const themeBtn = e.target.closest('[data-action="set-theme"]');
+      if (themeBtn) {
+        const newTheme = themeBtn.dataset.theme;
+        await Actions.saveSettings({ theme: newTheme });
+        applyTheme(newTheme);
+        screen.querySelectorAll('[data-action="set-theme"]').forEach(b => {
+          b.classList.toggle('filter-chip--active', b.dataset.theme === newTheme);
+        });
+        Toast.show(newTheme === 'dark' ? '🌙 Tema scuro attivo' : '☀️ Tema chiaro attivo', { type: 'success' });
         return;
       }
 

@@ -9,7 +9,7 @@
 import { Actions }          from './actions.js';
 import { State }            from './state.js';
 import { Router }           from './router.js';
-import { Render }           from './ui.js';
+import { Render, applyTheme } from './ui.js';
 
 import { HomeScreen }        from './screens/home.js';
 import { TripScreen }        from './screens/trip.js';
@@ -45,6 +45,7 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     await Actions.init();          // DB → migrazione → cache → seed
+    applyTheme(State.settings?.theme ?? 'light');
 
     // Mostra onboarding solo ai nuovi utenti (nessun viaggio esistente)
     // Gli utenti esistenti che non hanno ancora onboardingCompleted

@@ -4,6 +4,15 @@
    Topbar(), BottomNav()
    ===================================================== */
 
+// ── Theme ─────────────────────────────────────────────────
+/**
+ * Applica il tema chiaro/scuro impostando data-theme su <html>.
+ * @param {'light'|'dark'} theme
+ */
+export function applyTheme(theme = 'light') {
+  document.documentElement.dataset.theme = theme;
+}
+
 // ── Render ────────────────────────────────────────────────
 let _activeScreen = null;
 
