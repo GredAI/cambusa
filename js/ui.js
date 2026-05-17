@@ -11,6 +11,18 @@ export const Render = {
   screen(Screen) {
     _activeScreen?.unmount?.();
     document.getElementById('app').innerHTML = Screen.html();
+
+    // Wrap .screen contents in .screen-inner so nav stays at bottom
+    // even on short pages — without putting display:flex on the scroll
+    // container (which triggers an iOS Safari touch-event bug).
+    const screenEl = document.querySelector('.screen');
+    if (screenEl) {
+      const inner = document.createElement('div');
+      inner.className = 'screen-inner';
+      while (screenEl.firstChild) inner.appendChild(screenEl.firstChild);
+      screenEl.appendChild(inner);
+    }
+
     _activeScreen = Screen;
     Screen.mount?.();
   },

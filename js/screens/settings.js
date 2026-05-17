@@ -104,21 +104,39 @@ export const SettingsScreen = {
     const screen = document.getElementById('screen-settings');
     if (!screen) return;
 
-    // Import file
+    // Import file (supporta sia singolo viaggio che backup multi-viaggio)
     document.getElementById('input-settings-import')
       ?.addEventListener('change', async e => {
         const file = e.target.files?.[0];
         if (!file) return;
         try {
           const text   = await file.text();
-          const bundle = JSON.parse(text);
-          const result = await Actions.importTrip(bundle);
-          if (!result.ok) {
-            Toast.show('File non valido', { type: 'error' });
-            return;
+          const parsed = JSON.parse(text);
+
+          // Backup multi-viaggio: { _cambusaBackup: true, trips: [...bundles] }
+          if (parsed._cambusaBackup && Array.isArray(parsed.trips)) {
+            let imported = 0;
+            for (const bundle of parsed.trips) {
+              const result = await Actions.importTrip(bundle);
+              if (result.ok) imported++;
+            }
+            if (!imported) {
+              Toast.show('Nessun viaggio importato', { type: 'error' });
+            } else {
+              Toast.show(`✓ ${imported} viaggio/i importati`, { type: 'success' });
+              Router.go('home');
+            }
+
+          } else {
+            // Singolo viaggio: { _cambusa: true, trip, expenses, settlements }
+            const result = await Actions.importTrip(parsed);
+            if (!result.ok) {
+              Toast.show('File non valido', { type: 'error' });
+              return;
+            }
+            Toast.show(`✓ "${result.value.trip.name}" importato`, { type: 'success' });
+            Router.go('home');
           }
-          Toast.show(`✓ "${result.value.trip.name}" importato`, { type: 'success' });
-          Router.go('home');
         } catch {
           Toast.show('Errore lettura file', { type: 'error' });
         }
