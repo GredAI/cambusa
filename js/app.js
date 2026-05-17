@@ -18,6 +18,7 @@ import { BalancesScreen }    from './screens/balances.js';
 import { NewExpenseScreen }  from './screens/newExpense.js';
 import { TripFormScreen }    from './screens/tripForm.js';
 import { SettingsScreen }    from './screens/settings.js';
+import { OnboardingScreen } from './screens/onboarding.js';
 
 // ── Registra le schermate ─────────────────────────────────
 Router._screens = {
@@ -28,6 +29,7 @@ Router._screens = {
   'new-expense':  NewExpenseScreen,
   'trip-form':    TripFormScreen,
   'settings':     SettingsScreen,
+  'onboarding':   OnboardingScreen,
 };
 
 // ── Service Worker ────────────────────────────────────────
@@ -43,7 +45,20 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('DOMContentLoaded', async () => {
   try {
     await Actions.init();          // DB → migrazione → cache → seed
-    Router.go('home');             // prima schermata
+
+    // Mostra onboarding solo ai nuovi utenti (nessun viaggio esistente)
+    // Gli utenti esistenti che non hanno ancora onboardingCompleted
+    // vengono aggiornati silenziosamente e vanno direttamente a home.
+    const settings = State.settings ?? {};
+    if (!settings.onboardingCompleted && State.trips.length === 0) {
+      Router.go('onboarding');
+    } else {
+      if (!settings.onboardingCompleted) {
+        await Actions.saveSettings({ onboardingCompleted: true });
+      }
+      Router.go('home');           // prima schermata
+    }
+
     console.log('[Cambusa] ✓ Pronta');
   } catch (err) {
     console.error('[Cambusa] Errore avvio:', err);
