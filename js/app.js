@@ -17,6 +17,7 @@ import { ExpensesScreen }    from './screens/expenses.js';
 import { BalancesScreen }    from './screens/balances.js';
 import { NewExpenseScreen }  from './screens/newExpense.js';
 import { TripFormScreen }    from './screens/tripForm.js';
+import { SettingsScreen }    from './screens/settings.js';
 
 // ── Registra le schermate ─────────────────────────────────
 Router._screens = {
@@ -26,6 +27,7 @@ Router._screens = {
   'balances':     BalancesScreen,
   'new-expense':  NewExpenseScreen,
   'trip-form':    TripFormScreen,
+  'settings':     SettingsScreen,
 };
 
 // ── Service Worker ────────────────────────────────────────
