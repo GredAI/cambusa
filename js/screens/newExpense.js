@@ -467,8 +467,10 @@ function _payerBalanceInfo(trip) {
   const cur  = trip?.currency ?? '€';
   if (total === 0) return { text: '—', cls: '' };
   if (Math.abs(diff) < 0.005) return { text: '✓ Bilanciato', cls: 'text-positive' };
-  if (diff > 0) return { text: `Mancano ${diff.toFixed(2)}${cur}`, cls: 'text-negative' };
-  return { text: `Eccesso ${(-diff).toFixed(2)}${cur}`, cls: 'text-negative' };
+  // Somma parziale: pagamento non ancora completo — OK, si può salvare
+  if (diff > 0) return { text: `Ancora da pagare: ${diff.toFixed(2)}${cur}`, cls: 'text-warning' };
+  // Eccesso: errore bloccante
+  return { text: `Eccesso di ${(-diff).toFixed(2)}${cur}`, cls: 'text-negative' };
 }
 
 // ── Refresh parziali ──────────────────────────────────
@@ -721,18 +723,18 @@ async function _handleSave(trip) {
     }
   }
 
-  // Validazione modalità importo esatto payers
+  // Validazione modalità importo esatto payers:
+  // — ammessa la somma parziale (qualcuno deve ancora pagare)
+  // — bloccato solo l'eccesso (non si può pagare più del totale)
   if (_form.payerMode === 'amounts') {
     const payerAssigned = _form.payerPids.reduce(
       (s, pid) => s + (parseFloat(_form.payerAmountsMap[pid]) || 0), 0);
-    const payerDiff = Math.abs(amount - payerAssigned);
-    if (payerDiff >= 0.01) {
-      const trip = State.currentTrip;
-      const cur  = trip?.currency ?? '€';
-      const msg  = amount > payerAssigned
-        ? `Pagatori: mancano ${(amount - payerAssigned).toFixed(2)}${cur}`
-        : `Pagatori: eccesso di ${(payerAssigned - amount).toFixed(2)}${cur}`;
-      return Toast.show(msg, { type: 'error' });
+    if (payerAssigned > amount + 0.009) {
+      const cur = State.currentTrip?.currency ?? '€';
+      return Toast.show(
+        `Pagatori: eccesso di ${(payerAssigned - amount).toFixed(2)}${cur}`,
+        { type: 'error' }
+      );
     }
   }
 

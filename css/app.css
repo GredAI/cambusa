@@ -1017,6 +1017,7 @@ body {
 /* ── Utilità ──────────────────────────────────────────── */
 .text-positive { color: var(--color-primary-dark); }
 .text-negative { color: #ef4444; }
+.text-warning  { color: #d97706; }
 
 /* ── Empty state CTA ──────────────────────────────────── */
 .empty-state__cta {
