@@ -545,6 +545,13 @@ function _renderGuestRows(trip) {
         ${balCents > 0 ? '+' : ''}${(balCents/100).toFixed(0)}${cur}
       </span>` : '';
 
+    // Per i pagatori: importo effettivamente versato (da payerAmountsMap, opzionale)
+    const versato   = !isGuest ? (_form.payerAmountsMap[pid] ?? null) : null;
+    const rimanente = (!isGuest && versato != null && payerTotal > 0)
+      ? Math.round((payerTotal - versato) * 100) / 100
+      : null;
+    const isPaid    = !isGuest ? (_form.payerPaidMap[pid] !== false) : true;
+
     return `
       <div class="guest-row ${isGuest ? 'guest-row--ospite' : ''}">
         <div class="guest-row__main">
@@ -556,13 +563,33 @@ function _renderGuestRows(trip) {
             </div>
           </div>
           <div class="guest-row__actions">
-            ${!isGuest ? `<span class="guest-payer-total">${payerTotal.toFixed(2)}${cur}</span>` : ''}
+            ${!isGuest ? `<span class="guest-payer-total" title="Totale dovuto">${payerTotal.toFixed(2)}${cur}</span>` : ''}
             <button class="guest-toggle-btn ${isGuest ? 'guest-toggle--ospite' : 'guest-toggle--paga'}"
                     data-gtoggle="${pid}">
               ${isGuest ? '🎫 Ospite' : '✓ Paga'}
             </button>
           </div>
         </div>
+
+        ${!isGuest ? `
+          <div class="payer-amt-col" style="margin:4px 0 2px 0">
+            <input type="number" inputmode="decimal"
+                   class="amount-input ${rimanente !== null && rimanente > 0.01 ? 'amount-input--partial' : ''}"
+                   data-pamt="${pid}"
+                   value="${versato !== null ? versato : ''}"
+                   placeholder="${payerTotal.toFixed(2)}"
+                   min="0" step="0.01" />
+            <span class="amount-unit">${cur}</span>
+            <button class="payer-status-btn ${isPaid ? 'payer-status--paid' : 'payer-status--pending'}"
+                    data-ppaid="${pid}" title="${isPaid ? 'Versato' : 'Da versare'}">
+              ${isPaid ? '✓' : '⏱'}
+            </button>
+            ${rimanente !== null && rimanente > 0.01 ? `
+              <span class="text-warning" style="font-size:11px;margin-left:4px">
+                −${rimanente.toFixed(2)}${cur}
+              </span>` : ''}
+          </div>` : ''}
+
         ${isGuest ? `
           <div class="guest-payer-select">
             <span class="guest-payer-label">Pagato da (multi):</span>
@@ -729,7 +756,27 @@ function _bindPayerEvents(trip) {
     ?.addEventListener('click', e => {
       const btn = e.target.closest('[data-pmode]');
       if (!btn) return;
-      _form.payerMode = btn.dataset.pmode;
+      const prevMode = _form.payerMode;
+      const newMode  = btn.dataset.pmode;
+
+      // ── Migrazione dati tra modalità ─────────────────────
+      if (newMode === 'guests' && prevMode !== 'guests') {
+        // Marca automaticamente come ospiti chi NON era tra i pagatori selezionati;
+        // chi era già in payerPids diventa "Paga".
+        // Rispetta configurazioni ospiti già impostate manualmente.
+        const hasGuestConfig = Object.keys(_form.guestMap).length > 0;
+        if (!hasGuestConfig) {
+          _form.consumerPids.forEach(pid => {
+            _form.guestMap[pid] = !_form.payerPids.includes(pid);
+          });
+        }
+      }
+      if (newMode !== 'guests' && prevMode === 'guests') {
+        // Ricostruisci payerPids dai non-ospiti mantenendo gli amounts già inseriti
+        _form.payerPids = _form.consumerPids.filter(pid => !_form.guestMap[pid]);
+      }
+
+      _form.payerMode = newMode;
       _refreshPayers(trip);
     });
 
@@ -1074,14 +1121,18 @@ function _buildConsumers() {
 
 function _buildPayers() {
   if (_form.payerMode === 'guests') {
-    // Solo i consumatori non-ospiti; il loro importo include le quote degli ospiti assegnati
+    // Solo i consumatori non-ospiti; importo = effettivo versato (se inserito) o teorico
     return _form.consumerPids
       .filter(pid => !_form.guestMap[pid])
-      .map(pid => ({
-        participantId: pid,
-        sharesPaid: _payerGuestTotal(pid) || 0.01,
-        paid: _form.payerPaidMap[pid] !== false,
-      }));
+      .map(pid => {
+        const theoretical = _payerGuestTotal(pid) || 0.01;
+        const entered     = _form.payerAmountsMap[pid];
+        return {
+          participantId: pid,
+          sharesPaid: (entered != null && entered > 0) ? entered : theoretical,
+          paid: _form.payerPaidMap[pid] !== false,
+        };
+      });
   }
   if (_form.payerMode === 'amounts') {
     return _form.payerPids.map(pid => ({
