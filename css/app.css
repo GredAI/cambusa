@@ -141,13 +141,17 @@ body {
 
 /* ── Schermate ────────────────────────────────────────── */
 /*
-  .screen È lo scroll container — flex:1 in #app, overflow-y:auto.
-  .bottom-nav viene spostato fuori da .screen a runtime (Render.screen),
-  quindi non è mai dentro l'area scrollabile: zero overlap garantito.
+  .screen è il flex column scroll container.
+  .topbar: position sticky top:0 — rimane visibile in cima.
+  .screen-content: flex:1 — si espande per riempire lo spazio.
+  .bottom-nav: position sticky bottom:0 — rimane visibile in fondo.
+  Nessun element fixed, nessun overlap, event delegation intatta.
 */
 .screen {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -210,11 +214,10 @@ body {
 
 /* ── Layout schermate ─────────────────────────────────── */
 /*
-  .screen-content è solo layout, non scroll — lo scroll è su .screen.
-  padding-bottom: 16px è sufficiente perché il BottomNav
-  è fuori dal flusso scrollabile (vedi Render.screen in ui.js).
+  .screen-content cresce per riempire lo spazio tra topbar e bottom-nav.
 */
 .screen-content {
+  flex: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -941,11 +944,14 @@ body {
 
 /* ── Bottom Navigation ────────────────────────────────── */
 /*
-  Figlio diretto di #app (spostato da Render.screen) — mai fixed,
-  mai dentro l'area scroll. Occupa spazio reale nel flex layout.
+  Dentro .screen (event delegation intatta), sticky bottom:0
+  così rimane sempre visibile in fondo al viewport senza overlap.
 */
 .bottom-nav {
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   display: flex;

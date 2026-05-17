@@ -10,22 +10,7 @@ let _activeScreen = null;
 export const Render = {
   screen(Screen) {
     _activeScreen?.unmount?.();
-    const app = document.getElementById('app');
-    app.innerHTML = Screen.html();
-
-    /*
-      Architettura shell:
-        #app (flex column, 100dvh)
-          ├── .screen  (flex:1, overflow-y:auto)  ← unico scroll container
-          └── .bottom-nav  (flex-shrink:0)        ← in flusso, mai fixed
-
-      Il BottomNav viene scritto dentro .screen da ogni schermata,
-      ma qui lo solleviamo come figlio diretto di #app in modo che
-      non sia mai dentro l'area scrollabile — senza toccare i template.
-    */
-    const nav = app.querySelector('.bottom-nav');
-    if (nav) app.appendChild(nav);   // sposta dopo .screen
-
+    document.getElementById('app').innerHTML = Screen.html();
     _activeScreen = Screen;
     Screen.mount?.();
   },
