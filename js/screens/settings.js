@@ -49,7 +49,7 @@ export const SettingsScreen = {
           <div class="card">
             <div class="section-header">
               <span class="section-title">I tuoi dati</span>
-              <span class="topbar__badge">${nTrips} viaggio${nTrips !== 1 ? 'i' : ''}</span>
+              <span class="topbar__badge">${nTrips} ${nTrips === 1 ? 'viaggio' : 'viaggi'}</span>
             </div>
             <p class="field-hint" style="text-align:left;padding:4px 0 10px">
               ${nActive} attivi · ${nArch} archiviati
