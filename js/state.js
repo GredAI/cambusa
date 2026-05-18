@@ -213,11 +213,12 @@ export const State = {
         const perPayer   = Math.round(guestTotal / payerIds.length);
 
         for (const payerId of payerIds) {
-          const debtorBal   = balMap[guestId]  ?? 0;
-          const creditorBal = balMap[payerId]   ?? 0;
-          if (debtorBal >= 0 || creditorBal <= 0) continue;
+          const debtorBal = balMap[guestId] ?? 0;
+          // Routing verso il pagante designato indipendentemente dal suo saldo.
+          // Se anche il pagante è debitore, Phase 2 gestirà il suo residuo.
+          if (debtorBal >= 0) continue;
 
-          const amount = Math.min(Math.abs(debtorBal), creditorBal, perPayer);
+          const amount = Math.min(Math.abs(debtorBal), perPayer);
           if (amount < 1) continue;
 
           const from = trip.participants.find(p => p.id === guestId);
