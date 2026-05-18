@@ -761,6 +761,10 @@ function _bindPayerEvents(trip) {
 
       // ── Migrazione dati tra modalità ─────────────────────
       if (newMode === 'guests' && prevMode !== 'guests') {
+        // Azzera payerAmountsMap: eventuali importi inseriti in "Per importo"
+        // non devono contaminare la vista ospiti (causano sum(sharesPaid) ≠ total)
+        _form.payerAmountsMap = {};
+
         const hasGuestConfig = Object.keys(_form.guestMap).length > 0;
         if (!hasGuestConfig) {
           // Quanti consumer NON sono in payerPids?
