@@ -139,6 +139,7 @@ export const State = {
     // Invariante sum=0 rispettata (aggiustamento simmetrico).
     // ─────────────────────────────────────────────
     for (const e of exps) {
+      if (!isGroupExpense(e)) continue;
       if (!e.splitMeta?.guests?.length) continue;
       const consumers = e.consumers ?? [];
       const totalCS   = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
@@ -192,6 +193,7 @@ export const State = {
     // Per ogni spesa guests: costruisce le coppie (ospite → suo pagante)
     // proporzionali alla quota consumata e al numero di co-paganti.
     for (const e of exps) {
+      if (!isGroupExpense(e)) continue;          // ignora spese cancellate
       if (!e.splitMeta?.guests?.length) continue;
 
       const consumers = e.consumers ?? [];
@@ -285,6 +287,7 @@ export const State = {
     const result = []; // { from, to, amountCents }
 
     for (const e of exps) {
+      if (!isGroupExpense(e)) continue;
       if (!e.splitMeta?.guests?.length) continue;
       const consumers = e.consumers ?? [];
       const totalCS   = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
