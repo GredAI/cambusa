@@ -18,18 +18,20 @@ import { BalancesScreen }    from './screens/balances.js';
 import { NewExpenseScreen }  from './screens/newExpense.js';
 import { TripFormScreen }    from './screens/tripForm.js';
 import { SettingsScreen }    from './screens/settings.js';
-import { OnboardingScreen } from './screens/onboarding.js';
+import { OnboardingScreen }    from './screens/onboarding.js';
+import { ReceiptScannerScreen } from './screens/receiptScanner.js';
 
 // ── Registra le schermate ─────────────────────────────────
 Router._screens = {
-  'home':         HomeScreen,
-  'trip':         TripScreen,
-  'expenses':     ExpensesScreen,
-  'balances':     BalancesScreen,
-  'new-expense':  NewExpenseScreen,
-  'trip-form':    TripFormScreen,
-  'settings':     SettingsScreen,
-  'onboarding':   OnboardingScreen,
+  'home':             HomeScreen,
+  'trip':             TripScreen,
+  'expenses':         ExpensesScreen,
+  'balances':         BalancesScreen,
+  'new-expense':      NewExpenseScreen,
+  'trip-form':        TripFormScreen,
+  'settings':         SettingsScreen,
+  'onboarding':       OnboardingScreen,
+  'receipt-scanner':  ReceiptScannerScreen,
 };
 
 // ── Service Worker ────────────────────────────────────────

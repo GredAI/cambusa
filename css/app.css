@@ -2883,6 +2883,383 @@ html[data-theme="dark"] .bottom-nav {
   z-index: 1;
 }
 
+/* ── Receipt Scanner ─────────────────────────────────── */
+
+/* Topbar expenses — bottone fotocamera */
+.expenses-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.expenses-scan-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 8px;
+  line-height: 1;
+  opacity: 0.8;
+  transition: opacity .15s;
+}
+.expenses-scan-btn:active { opacity: 1; }
+
+/* Contenitore scrollabile della schermata */
+.rs-container {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 32px;
+  gap: 0;
+}
+
+/* Fase generica */
+.rs-phase {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Hero fase 1 */
+.rs-hero {
+  text-align: center;
+  padding: 24px 8px 8px;
+}
+.rs-icon { font-size: 52px; line-height: 1; margin-bottom: 8px; }
+.rs-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 6px;
+}
+.rs-sub {
+  font-size: 14px;
+  color: var(--color-text-sub);
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Upload button */
+.rs-upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  margin-top: 8px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: var(--r-md);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.rs-upload-btn:active { opacity: .85; }
+
+/* Progress bar */
+.rs-progress-wrap {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rs-progress-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.rs-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 4px;
+  transition: width .2s;
+}
+.rs-progress-label {
+  font-size: 13px;
+  color: var(--color-text-sub);
+  text-align: center;
+  margin: 0;
+}
+
+/* Link manuale */
+.rs-link-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 8px 0;
+  text-align: center;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Etichetta sezione */
+.rs-section-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+/* Campo testo generico */
+.rs-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--r-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color .15s;
+}
+.rs-field:focus { border-color: var(--color-primary); }
+
+/* Badge totale */
+.rs-total-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+/* Lista articoli */
+.rs-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.rs-item-row:last-child { border-bottom: none; }
+.rs-item-name {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  outline: none;
+}
+.rs-item-name:focus { border-color: var(--color-primary); }
+.rs-item-price-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.rs-item-cur {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.rs-item-price {
+  width: 72px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 14px;
+  text-align: right;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  outline: none;
+}
+.rs-item-price:focus { border-color: var(--color-primary); }
+.rs-item-del {
+  background: none;
+  border: none;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 6px 4px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.rs-item-del:active { color: var(--color-danger, #ef4444); }
+
+/* Aggiungi voce */
+.rs-add-item-btn {
+  background: none;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--r-md);
+  padding: 10px;
+  font-size: 14px;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color .15s, color .15s;
+  margin-top: 4px;
+}
+.rs-add-item-btn:active { border-color: var(--color-primary); color: var(--color-primary); }
+
+/* Empty state */
+.rs-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+  padding: 16px 0;
+  margin: 0;
+}
+
+/* Bottone primario */
+.rs-primary-btn {
+  width: 100%;
+  padding: 15px;
+  margin-top: 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--r-md);
+  font-size: 16px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity .15s;
+}
+.rs-primary-btn:active   { opacity: .85; }
+.rs-primary-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* Card assegnazione articolo */
+.rs-assign-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rs-assign-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.rs-assign-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rs-assign-card__price {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  flex-shrink: 0;
+}
+.rs-assign-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Chip partecipante */
+.rs-chip {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-sub);
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.rs-chip:active { opacity: .8; }
+.rs-chip--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+}
+.rs-chip--all {
+  background: var(--color-bg);
+  font-style: italic;
+}
+.rs-chip--all.rs-chip--active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: white;
+  font-style: normal;
+}
+
+/* Warning non assegnati */
+.rs-warn {
+  font-size: 13px;
+  color: #d97706;
+  background: rgba(251,191,36,0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0;
+}
+
+/* Riga chips payer */
+.rs-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+/* Totali per partecipante */
+.rs-ptotals-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0;
+}
+.rs-ptotal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  min-width: 60px;
+}
+.rs-ptotal--active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+.rs-ptotal__name {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  font-weight: 600;
+}
+.rs-ptotal__amount {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 2px;
+}
+.rs-ptotal--active .rs-ptotal__amount {
+  color: var(--color-primary-dark);
+}
+
 /* Dark theme micro-arc text in trip card */
 html[data-theme="dark"] .trip-card__arc text {
   fill: #f0ece6;

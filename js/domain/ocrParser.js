@@ -82,6 +82,66 @@ function _guessCategory(text) {
   return 'altro';
 }
 
+// ── Righe da saltare nel parsing articoli ──────────────
+const SKIP_ITEM_RX = [
+  /^\s*$/,
+  /^[*=\-_#+|]{2,}/,
+  /\b(totale|total|tot\.?|sub-?tot|subtotale)\b/i,
+  /\b(iva|vat|tax)\s*\d/i,
+  /\b(sconto|discount|omaggio|abbuono)\b/i,
+  /\b(data|ora\b|cassa|pos\b|p\.?\s*iva|c\.?\s*f\.?|cod\.?\s*fisc)\b/i,
+  /\b(contante|carta|bancomat|paywave|contactless|resto|change|visa|mastercard)\b/i,
+  /\b(grazie|arrivederci|scontrino|ricevuta|fiscale|cortesia)\b/i,
+  /^\d{2}[\/\-]\d{2}[\/\-]\d{2,4}/,   // data
+  /^\d{2}:\d{2}/,                        // ora
+];
+
+/** Prezzo a destra riga: ultimo numero decimale della riga */
+const PRICE_RIGHT_RX = /(\d{1,5}[.,]\d{2})\s*[A-Z]?\s*$/;
+
+/**
+ * Estrae le singole voci (articoli + prezzo) dal testo OCR di uno scontrino.
+ *
+ * @param {string} text
+ * @returns {Array<{id: string, name: string, amountCents: number}>}
+ */
+export function parseReceiptItems(text) {
+  if (!text) return [];
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const items = [];
+
+  for (const line of lines) {
+    // Salta righe irrilevanti
+    if (SKIP_ITEM_RX.some(rx => rx.test(line))) continue;
+
+    // Cerca prezzo a destra
+    const match = line.match(PRICE_RIGHT_RX);
+    if (!match) continue;
+
+    const amountCents = Math.round(_parseAmount(match[1]) * 100);
+    if (amountCents <= 0 || amountCents > 99900) continue;  // ignora subtotali grandi
+
+    // Nome = tutto prima del prezzo, ripulito
+    const rawName = line.slice(0, match.index)
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/[^\w\sàèéìòùÀÈÉÌÒÙ°'".,&\-()/]/g, '')
+      .trim()
+      .slice(0, 50);
+
+    if (rawName.length < 2) continue;
+
+    items.push({
+      id:          crypto.randomUUID(),
+      name:        rawName,
+      amountCents,
+    });
+  }
+
+  return items;
+}
+
 // ── Export ─────────────────────────────────────────────
 
 /**

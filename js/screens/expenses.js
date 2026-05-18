@@ -40,7 +40,10 @@ export const ExpensesScreen = {
           subtitle: trip.name,
           back:     true,
           backNav:  'trip',
-          right:    `<span class="topbar__badge">${groupCount}</span>`,
+          right:    `<div class="expenses-topbar-right">
+                      <button class="expenses-scan-btn" data-action="open-scanner" title="Scansiona scontrino">📷</button>
+                      <span class="topbar__badge">${groupCount}</span>
+                    </div>`,
         })}
 
         <main class="screen-content">
@@ -61,6 +64,12 @@ export const ExpensesScreen = {
         // ── Back ─────────────────────────────────────
         if (e.target.closest('.btn-back')) {
           Router.go('trip', { tripId: State.currentTrip?.id });
+          return;
+        }
+
+        // ── Scanner scontrino ────────────────────────
+        if (e.target.closest('[data-action="open-scanner"]')) {
+          Router.go('receipt-scanner', { tripId: State.currentTrip?.id });
           return;
         }
 
