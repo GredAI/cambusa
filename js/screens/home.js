@@ -7,7 +7,7 @@ import { Toast }     from '../toast.js';
 import { Modal }     from '../ui/modal.js';
 
 // ── Micro-arc logomark (card widget) ─────────────────────
-function _microArc(nPart) {
+function _microArc() {
   return `
     <svg class="trip-card__arc" viewBox="0 0 100 100" width="48" height="48"
          xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -18,9 +18,6 @@ function _microArc(nPart) {
       <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336 L 68.431 37.095 A 22.5 22.5 0 0 0 55.823 28.267 Z"
             fill="#F47461"/>
       <circle cx="73" cy="17" r="5" fill="#F47461"/>
-      <text x="44" y="57" text-anchor="middle" dominant-baseline="middle"
-            font-family="Sora,sans-serif" font-size="21" font-weight="700"
-            fill="#1D3844">${nPart}</text>
     </svg>`;
 }
 
@@ -61,12 +58,11 @@ export const HomeScreen = {
     const tripCard = t => {
       const total  = Selectors.tripTotalById(t.id);
       const nSpese = Selectors.tripExpenseCountById(t.id);
-      const nPart  = t.participants.length;
       const stateClass = t.archivedAt ? 'trip-card--archived' : 'trip-card--active';
       return `
         <div class="card trip-card ${stateClass}" data-action="open-trip" data-trip-id="${t.id}">
           <div class="trip-card__header">
-            ${_microArc(nPart)}
+            ${_microArc()}
             <div class="trip-card__info">
               <h2 class="trip-card__name">${t.name}</h2>
               <p class="trip-card__sub">${t.location}</p>
