@@ -17,8 +17,9 @@ function _microArc(nPart) {
       <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336 L 68.431 37.095 A 22.5 22.5 0 0 0 55.823 28.267 Z"
             fill="#F47461"/>
       <circle cx="73" cy="17" r="5" fill="#F47461"/>
-      <text x="37" y="57" text-anchor="middle" font-family="Sora,sans-serif"
-            font-size="22" font-weight="700" fill="#1D3844">${nPart}</text>
+      <text x="44" y="57" text-anchor="middle" dominant-baseline="middle"
+            font-family="Sora,sans-serif" font-size="21" font-weight="700"
+            fill="#1D3844">${nPart}</text>
     </svg>`;
 }
 
@@ -116,7 +117,7 @@ export const HomeScreen = {
         <!-- Hero section -->
         <header class="home-hero">
           <div class="home-hero__top">
-            ${CambusaLogo({ size: '40px' })}
+            ${CambusaLogo({ size: '40px', onDark: true })}
             <div class="home-hero__title-wrap">
               <h1 class="home-hero__title">Cambusa</h1>
               <p class="home-hero__sub">Le tue avventure</p>

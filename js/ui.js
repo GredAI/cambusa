@@ -14,19 +14,21 @@
  * @param {string} [opts.bg]         colore sfondo cerchio opzionale (default: none)
  * @param {string} [opts.extraClass] classe CSS aggiuntiva
  * @param {boolean}[opts.dot]        mostra il dot marker (default: true)
+ * @param {boolean}[opts.onDark]     variante su sfondo scuro — segmento navy diventa bianco
  */
-export function CambusaLogo({ size = '40px', bg = '', extraClass = '', dot = true } = {}) {
+export function CambusaLogo({ size = '40px', bg = '', extraClass = '', dot = true, onDark = false } = {}) {
   const bgCircle = bg
     ? `<circle cx="50" cy="50" r="50" fill="${bg}"/>`
     : '';
   const dotMark = dot
     ? `<circle cx="73" cy="17" r="5" fill="#F47461"/>`
     : '';
+  const navyFill = onDark ? '#ffffff' : '#1D3844';
   return `
     <svg class="cambusa-logo ${extraClass}" xmlns="http://www.w3.org/2000/svg"
          viewBox="0 0 100 100" width="${size}" height="${size}" aria-label="Cambusa">
       ${bgCircle}
-      <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465 L 55.823 28.267 A 22.5 22.5 0 1 0 55.823 71.733 Z" fill="#1D3844"/>
+      <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465 L 55.823 28.267 A 22.5 22.5 0 1 0 55.823 71.733 Z" fill="${navyFill}"/>
       <path d="M 85.224 74.664 A 43 43 0 0 1 61.129 91.535 L 55.823 71.733 A 22.5 22.5 0 0 0 68.431 62.905 Z" fill="#2FA7A0"/>
       <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336 L 68.431 37.095 A 22.5 22.5 0 0 0 55.823 28.267 Z" fill="#F47461"/>
       ${dotMark}
