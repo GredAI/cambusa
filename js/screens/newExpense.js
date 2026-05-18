@@ -61,10 +61,11 @@ function _emptyForm(trip) {
     notes:           '',
     // Consumers
     consumerPreset:      'tutti',   // 'tutti' | 'presenti' | 'custom'
-    consumerMode:        'shares',  // 'equal' | 'shares' | 'amounts'
+    consumerMode:        'shares',  // 'equal' | 'shares' | 'amounts' | 'percent'
     consumerPids:        trip.participants.map(p => p.id),
     sharesMap,
     consumerAmountsMap:  {},        // { pid: euroAmount } — usato solo in mode 'amounts'
+    consumerPercentMap:  {},        // { pid: number 0-100 } — usato solo in mode 'percent'
     // Payers
     payerPids:        firstPid ? [firstPid] : [],
     payerSharesMap,
@@ -272,12 +273,16 @@ function _renderConsumers(trip) {
   const mode        = _form.consumerMode;
   const isShares    = mode === 'shares';
   const isAmounts   = mode === 'amounts';
+  const isPercent   = mode === 'percent';
   const totalShares = _calcConsumerShares();
 
   // Summary dinamico per modalità
   let summaryHtml;
   if (isAmounts) {
     const { text, cls } = _consumerBalanceInfo(trip);
+    summaryHtml = `<span class="section-sub ${cls}" id="consumer-summary">${text}</span>`;
+  } else if (isPercent) {
+    const { text, cls } = _consumerPercentInfo();
     summaryHtml = `<span class="section-sub ${cls}" id="consumer-summary">${text}</span>`;
   } else {
     const perUnit = totalShares > 0 && amount
@@ -310,6 +315,8 @@ function _renderConsumers(trip) {
               data-cmode="equal">= Uguale</button>
       <button class="split-mode-btn ${mode === 'shares'  ? 'split-mode-btn--active' : ''}"
               data-cmode="shares">⚖ Quote</button>
+      <button class="split-mode-btn ${mode === 'percent' ? 'split-mode-btn--active' : ''}"
+              data-cmode="percent">% Perc.</button>
       <button class="split-mode-btn ${mode === 'amounts' ? 'split-mode-btn--active' : ''}"
               data-cmode="amounts">✏ Importo</button>
     </div>
@@ -325,7 +332,31 @@ function _renderConsumerRow(p, trip) {
   const mode       = _form.consumerMode;
   const isShares   = mode === 'shares';
   const isAmounts  = mode === 'amounts';
+  const isPercent  = mode === 'percent';
   const shares     = _form.sharesMap[p.id] ?? 1;
+
+  // Modalità percentuale
+  if (isPercent) {
+    const pctVal = isSelected && _form.consumerPercentMap[p.id] != null
+      ? _form.consumerPercentMap[p.id]
+      : '';
+    return `
+      <div class="split-row ${!isSelected ? 'split-row--off' : ''}">
+        <button class="split-toggle ${isSelected ? 'split-toggle--on' : ''}"
+                data-ctoggle="${p.id}" ${!isCustom ? 'disabled' : ''}>
+          ${participantAvatar(p, 'avatar--sm')}
+          <span class="split-row__name">${p.name}</span>
+          ${isSelected ? '<span class="split-check">✓</span>' : ''}
+        </button>
+        ${isSelected ? `
+          <div class="payer-amt-wrap">
+            <input class="payer-amt-input" type="number" inputmode="decimal"
+                   data-cpct="${p.id}" placeholder="0"
+                   value="${pctVal}" min="0" max="100" step="0.1" />
+            <span class="payer-amt-currency">%</span>
+          </div>` : ''}
+      </div>`;
+  }
 
   // Modalità importo esatto
   if (isAmounts) {
@@ -492,12 +523,15 @@ function _renderPayerRow(p, multiPayer, payerMode, trip) {
 
 // ── Modalità Con ospiti ───────────────────────────────
 
-/** Quota base di un consumer in euro (in base a shares/amounts/equal). */
+/** Quota base di un consumer in euro (in base a shares/amounts/equal/percent). */
 function _baseQuota(pid) {
   const total = parseFloat(_form.amount) || 0;
   if (!_form.consumerPids.includes(pid)) return 0;
   if (_form.consumerMode === 'amounts') {
     return parseFloat(_form.consumerAmountsMap[pid]) || 0;
+  }
+  if (_form.consumerMode === 'percent') {
+    return Math.round((total * (_form.consumerPercentMap[pid] ?? 0) / 100) * 100) / 100;
   }
   const totalShares = _calcConsumerShares();
   if (totalShares === 0) return 0;
@@ -620,6 +654,16 @@ function _renderGuestRows(trip) {
   }).join('');
 }
 
+// Balance indicator consumers (modalità percentuale)
+function _consumerPercentInfo() {
+  const total = _form.consumerPids.reduce(
+    (s, pid) => s + (parseFloat(_form.consumerPercentMap[pid]) || 0), 0);
+  const diff = 100 - total;
+  if (Math.abs(diff) < 0.05) return { text: '✓ 100%', cls: 'text-positive' };
+  if (diff > 0) return { text: `Mancano ${diff.toFixed(1)}%`, cls: 'text-negative' };
+  return { text: `Eccesso ${(-diff).toFixed(1)}%`, cls: 'text-negative' };
+}
+
 // Balance indicator consumers (modalità importo esatto)
 function _consumerBalanceInfo(trip) {
   const total    = parseFloat(_form.amount) || 0;
@@ -672,6 +716,12 @@ function _refreshConsumerSummary() {
     el.className   = `section-sub ${cls}`;
     return;
   }
+  if (_form.consumerMode === 'percent') {
+    const { text, cls } = _consumerPercentInfo();
+    el.textContent = text;
+    el.className   = `section-sub ${cls}`;
+    return;
+  }
 
   const amount   = parseFloat(_form.amount) || 0;
   const isShares = _form.consumerMode === 'shares';
@@ -704,6 +754,10 @@ function _bindConsumerEvents(trip) {
       if (newMode === 'amounts') {
         _prefillConsumerAmounts(trip);
       }
+      // Passando a 'percent': distribuisce 100% equamente
+      if (newMode === 'percent') {
+        _prefillConsumerPercents();
+      }
       _form.consumerMode = newMode;
       _refreshConsumers(trip);
     });
@@ -726,10 +780,19 @@ function _bindConsumerEvents(trip) {
             .reduce((s, id) => s + (parseFloat(_form.consumerAmountsMap[id]) || 0), 0);
           _form.consumerAmountsMap[pid] = Math.max(0, parseFloat((total - already).toFixed(2)));
         }
+        // In percent mode: ridistribuisce il 100% equamente
+        if (_form.consumerMode === 'percent') {
+          _prefillConsumerPercents();
+        }
       } else {
         if (_form.consumerPids.length <= 1) return;
         _form.consumerPids.splice(idx, 1);
         delete _form.consumerAmountsMap[pid];
+        delete _form.consumerPercentMap[pid];
+        // In percent mode: ridistribuisce il 100% equamente
+        if (_form.consumerMode === 'percent') {
+          _prefillConsumerPercents();
+        }
       }
       _refreshConsumers(trip);
     });
@@ -740,6 +803,16 @@ function _bindConsumerEvents(trip) {
       const input = e.target.closest('[data-camt]');
       if (!input) return;
       _form.consumerAmountsMap[input.dataset.camt] = parseFloat(input.value) || 0;
+      _refreshConsumerSummary();
+    });
+
+  // Input percentuale (modalità percent)
+  document.getElementById('consumer-rows')
+    ?.addEventListener('input', e => {
+      const input = e.target.closest('[data-cpct]');
+      if (!input) return;
+      const val = parseFloat(input.value);
+      _form.consumerPercentMap[input.dataset.cpct] = isNaN(val) ? 0 : Math.min(100, Math.max(0, val));
       _refreshConsumerSummary();
     });
 
@@ -1066,6 +1139,18 @@ async function _handleSave(trip) {
     }
   }
 
+  // Validazione modalità percentuale consumers
+  if (_form.consumerMode === 'percent') {
+    const total = _form.consumerPids.reduce(
+      (s, pid) => s + (parseFloat(_form.consumerPercentMap[pid]) || 0), 0);
+    if (Math.abs(total - 100) >= 0.1) {
+      const msg = total < 100
+        ? `Percentuali: mancano ${(100 - total).toFixed(1)}%`
+        : `Percentuali: eccesso di ${(total - 100).toFixed(1)}%`;
+      return Toast.show(msg, { type: 'error' });
+    }
+  }
+
   // Validazione modalità importo esatto payers:
   // — ammessa la somma parziale (qualcuno deve ancora pagare)
   // — bloccato solo l'eccesso (non si può pagare più del totale)
@@ -1176,6 +1261,14 @@ function _buildConsumers() {
       shares: Math.round((_form.consumerAmountsMap[pid] ?? 0) * 100) / 100 || 0.01,
     }));
   }
+  if (_form.consumerMode === 'percent') {
+    // Salva le percentuali direttamente come shares — il motore usa i rapporti,
+    // quindi 25:50:25 equivale a 1:2:1. La somma deve essere ~100.
+    return _form.consumerPids.map(pid => ({
+      participantId: pid,
+      shares: Math.max(0.01, _form.consumerPercentMap[pid] ?? 0),
+    }));
+  }
   return _form.consumerPids.map(pid => ({
     participantId: pid,
     shares: _form.consumerMode === 'equal' ? 1 : (_form.sharesMap[pid] ?? 1),
@@ -1234,8 +1327,29 @@ function _buildPayers() {
 }
 
 function _calcConsumerShares() {
-  if (_form.consumerMode === 'equal') return _form.consumerPids.length;
+  if (_form.consumerMode === 'equal')   return _form.consumerPids.length;
+  if (_form.consumerMode === 'percent') return _form.consumerPids.reduce((s, pid) => s + (_form.consumerPercentMap[pid] ?? 0), 0);
   return _form.consumerPids.reduce((s, pid) => s + (_form.sharesMap[pid] ?? 1), 0);
+}
+
+/**
+ * Pre-compila consumerPercentMap distribuendo il 100% equamente.
+ * L'ultimo riceve il residuo per garantire la somma esatta.
+ */
+function _prefillConsumerPercents() {
+  const pids = _form.consumerPids;
+  const n    = pids.length;
+  if (n === 0) return;
+  const base = Math.floor((100 / n) * 10) / 10; // arrotonda a 1 decimale
+  let remaining = 100;
+  pids.forEach((pid, i) => {
+    if (i === n - 1) {
+      _form.consumerPercentMap[pid] = Math.round(remaining * 10) / 10;
+    } else {
+      _form.consumerPercentMap[pid] = base;
+      remaining = Math.round((remaining - base) * 10) / 10;
+    }
+  });
 }
 
 /**
@@ -1528,12 +1642,25 @@ function _formFromExpense(expense, trip) {
     consumersInAmounts = consumerFmt !== null;
   }
 
+  // Ripristina consumerPercentMap (modalità percent)
+  const consumerPercentMap = {};
+  if (savedConsumerMode === 'percent') {
+    // Le shares sono già percentuali (salvate come tali in _buildConsumers)
+    const totalPct = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
+    consumers.forEach(c => {
+      // Normalizza a 100 nel caso in cui ci sia uno scarto di arrotondamento
+      consumerPercentMap[c.participantId] = totalPct > 0
+        ? Math.round(((c.shares ?? 0) / totalPct * 100) * 10) / 10
+        : 0;
+    });
+  }
+
   if (consumersInAmounts) {
     consumers.forEach(c => {
       const v = c.shares ?? 0;
       consumerAmountsMap[c.participantId] = consumerFmt === 'cents' ? v / 100 : v;
     });
-  } else {
+  } else if (savedConsumerMode !== 'percent') {
     consumers.forEach(c => {
       sharesMap[c.participantId] = Math.max(1, c.shares ?? 1);
     });
@@ -1571,7 +1698,7 @@ function _formFromExpense(expense, trip) {
   // consumerMode: se splitMeta è presente usa quello, altrimenti inferisce
   const consumerMode = consumersInAmounts
     ? 'amounts'
-    : (savedConsumerMode ?? 'shares');
+    : (savedConsumerMode === 'percent' ? 'percent' : (savedConsumerMode ?? 'shares'));
 
   // Ricostruisce payerPaidMap da expense salvata
   const payerPaidMap = {};
@@ -1615,6 +1742,7 @@ function _formFromExpense(expense, trip) {
     consumerPids:       consumers.map(c => c.participantId),
     sharesMap,
     consumerAmountsMap,
+    consumerPercentMap,
     // Payers
     payerPids:       payers.map(p => p.participantId),
     payerSharesMap,
