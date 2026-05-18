@@ -2676,6 +2676,24 @@ html[data-theme="dark"] body {
   font-weight: 500;
 }
 
+.trip-card__delete {
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.45;
+  border-radius: 8px;
+  transition: opacity 0.15s;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.trip-card__delete:active {
+  opacity: 1;
+  background: rgba(220, 53, 69, 0.1);
+}
+
 /* Per-card participant avatar circles */
 .trip-avatar {
   width: 26px;

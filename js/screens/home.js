@@ -4,6 +4,7 @@ import { Router }    from '../router.js';
 import { Selectors } from '../selectors.js';
 import { Topbar, BottomNav, CambusaLogo } from '../ui.js';
 import { Toast }     from '../toast.js';
+import { Modal }     from '../ui/modal.js';
 
 // ── Micro-arc logomark (card widget) ─────────────────────
 function _microArc(nPart) {
@@ -78,6 +79,8 @@ export const HomeScreen = {
           <div class="trip-card__footer">
             ${_avatarPill(t.participants)}
             <span class="trip-card__meta">${nSpese} ${nSpese === 1 ? 'spesa' : 'spese'}</span>
+            <button class="trip-card__delete" data-action="delete-trip" data-trip-id="${t.id}"
+                    aria-label="Elimina viaggio">🗑</button>
           </div>
         </div>`;
     };
@@ -197,6 +200,26 @@ export const HomeScreen = {
       });
 
     document.getElementById('screen-home')?.addEventListener('click', e => {
+      // Elimina viaggio
+      const delBtn = e.target.closest('[data-action="delete-trip"]');
+      if (delBtn) {
+        e.stopPropagation();
+        const tripId = delBtn.dataset.tripId;
+        const trip   = State.trips.find(t => t.id === tripId);
+        Modal.confirm({
+          title:        'Elimina viaggio',
+          message:      `"${trip?.name ?? ''}" e tutte le sue spese verranno cancellati definitivamente.`,
+          confirmLabel: 'Elimina',
+          danger:       true,
+          onConfirm: async () => {
+            await Actions.deleteTrip(tripId);
+            Toast.show('Viaggio eliminato', { type: 'info' });
+            Router.go('home');
+          },
+        });
+        return;
+      }
+
       // Apri viaggio
       const card = e.target.closest('[data-action="open-trip"]');
       if (card) {
