@@ -9,7 +9,7 @@ import { Router }  from '../router.js';
 import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
 
-const APP_VERSION = 'v82';
+const APP_VERSION = 'v85';
 
 const CURRENCIES = ['€', '$', '£', 'CHF', '¥', 'kr'];
 
@@ -83,24 +83,36 @@ export const SettingsScreen = {
               ${nActive} attivi · ${nArch} archiviati
             </p>
 
+            <!-- Esporta -->
+            <p class="field-hint" style="text-align:left;padding:0 0 6px;font-weight:600">Esporta</p>
             <div class="export-row">
               <button class="export-btn" data-action="export-all">
-                ⬇ Backup JSON
+                ⬇ Salva file
               </button>
-              <label class="export-btn" title="Importa da backup JSON">
-                ⬆ Importa
+              <button class="export-btn" data-action="copy-json">
+                📋 Copia JSON
+              </button>
+            </div>
+
+            <!-- Importa -->
+            <p class="field-hint" style="text-align:left;padding:10px 0 6px;font-weight:600">Importa</p>
+            <div class="export-row">
+              <label class="export-btn" title="Importa da file JSON">
+                📂 Scegli file
                 <input type="file" id="input-settings-import"
                        accept=".json" style="display:none" />
               </label>
             </div>
-            ${localStorage.getItem('cambusa_cached_backup') ? `
-            <button class="export-btn export-btn--cached" data-action="export-cached"
-                    style="margin-top:8px;width:100%">
-              💾 Scarica ultimo auto-backup
-              <span style="font-size:11px;opacity:0.7;display:block">
-                ${localStorage.getItem('cambusa_last_autobackup') ?? ''}
-              </span>
-            </button>` : ''}
+            <div style="margin-top:8px">
+              <textarea id="input-paste-json"
+                        rows="4"
+                        placeholder="Oppure incolla qui il testo JSON del backup…"
+                        style="width:100%;box-sizing:border-box;padding:10px;border-radius:10px;border:1.5px solid var(--color-border);background:var(--color-surface);color:var(--color-text);font-size:13px;resize:vertical;font-family:monospace"></textarea>
+              <button class="export-btn" data-action="import-pasted-json"
+                      style="margin-top:6px;width:100%">
+                ✓ Importa da testo
+              </button>
+            </div>
           </div>
 
           <!-- Zona pericolosa -->
@@ -226,13 +238,60 @@ export const SettingsScreen = {
         return;
       }
 
-      // Scarica backup in cache (auto-backup da localStorage)
-      if (e.target.closest('[data-action="export-cached"]')) {
-        const json  = localStorage.getItem('cambusa_cached_backup');
-        const date  = localStorage.getItem('cambusa_last_autobackup') ?? 'backup';
-        if (!json) { Toast.show('Nessun backup in cache', { type: 'info' }); return; }
-        _safariDownload(json, `cambusa-autobackup-${date}.json`);
-        Toast.show('✓ Backup scaricato', { type: 'success' });
+      // Copia JSON negli appunti (Safari-safe, non richiede filesystem)
+      if (e.target.closest('[data-action="copy-json"]')) {
+        try {
+          const trips = State.trips;
+          if (!trips.length) {
+            Toast.show('Nessun viaggio da copiare', { type: 'info' });
+            return;
+          }
+          const bundles = await Promise.all(trips.map(t => Actions.exportTrip(t.id)));
+          const valid   = bundles.filter(r => r.ok).map(r => r.value);
+          const json    = JSON.stringify({ _cambusaBackup: true, trips: valid }, null, 2);
+          await navigator.clipboard.writeText(json);
+          Toast.show('📋 JSON copiato negli appunti — incollalo in Note o Messages per conservarlo', { type: 'success' });
+        } catch (err) {
+          Toast.show('Errore copia — prova con "Salva file"', { type: 'error' });
+        }
+        return;
+      }
+
+      // Importa da testo JSON incollato nella textarea
+      if (e.target.closest('[data-action="import-pasted-json"]')) {
+        const text = document.getElementById('input-paste-json')?.value?.trim();
+        if (!text) {
+          Toast.show('Incolla prima il testo JSON', { type: 'info' });
+          return;
+        }
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed._cambusaBackup && Array.isArray(parsed.trips)) {
+            let imported = 0;
+            for (const bundle of parsed.trips) {
+              const result = await Actions.importTrip(bundle);
+              if (result.ok) imported++;
+            }
+            if (!imported) {
+              Toast.show('Nessun viaggio importato', { type: 'error' });
+            } else {
+              Toast.show(`✓ ${imported} viaggio/i importati`, { type: 'success' });
+              Router.go('home');
+            }
+          } else if (parsed._cambusa) {
+            const result = await Actions.importTrip(parsed);
+            if (!result.ok) {
+              Toast.show('Testo non valido', { type: 'error' });
+              return;
+            }
+            Toast.show(`✓ "${result.value.trip.name}" importato`, { type: 'success' });
+            Router.go('home');
+          } else {
+            Toast.show('Formato JSON non riconosciuto', { type: 'error' });
+          }
+        } catch {
+          Toast.show('Testo non valido — assicurati di aver copiato tutto il JSON', { type: 'error' });
+        }
         return;
       }
 

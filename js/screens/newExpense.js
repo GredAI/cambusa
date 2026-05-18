@@ -761,15 +761,21 @@ function _bindPayerEvents(trip) {
 
       // ── Migrazione dati tra modalità ─────────────────────
       if (newMode === 'guests' && prevMode !== 'guests') {
-        // Marca automaticamente come ospiti chi NON era tra i pagatori selezionati;
-        // chi era già in payerPids diventa "Paga".
-        // Rispetta configurazioni ospiti già impostate manualmente.
         const hasGuestConfig = Object.keys(_form.guestMap).length > 0;
         if (!hasGuestConfig) {
-          _form.consumerPids.forEach(pid => {
-            _form.guestMap[pid] = !_form.payerPids.includes(pid);
-          });
+          // Quanti consumer NON sono in payerPids?
+          const nonPayers = _form.consumerPids.filter(pid => !_form.payerPids.includes(pid));
+          if (nonPayers.length > 0) {
+            // Caso normale: chi non era tra i pagatori diventa ospite
+            _form.consumerPids.forEach(pid => {
+              _form.guestMap[pid] = !_form.payerPids.includes(pid);
+            });
+          }
+          // Se tutti i consumer erano in payerPids (es. "Per quote" con tutti selezionati)
+          // non pre-popolare guestMap: l'utente marcherà gli ospiti a mano
         }
+        // Assicura che payerPids rifletta i non-ospiti attuali
+        _form.payerPids = _form.consumerPids.filter(pid => !_form.guestMap[pid]);
       }
       if (newMode !== 'guests' && prevMode === 'guests') {
         // Ricostruisci payerPids dai non-ospiti mantenendo gli amounts già inseriti
@@ -814,15 +820,24 @@ function _bindPayerEvents(trip) {
       if (el) el.textContent = _form.payerSharesMap[pid];
     });
 
-  // Input importo diretto (modalità amounts)
+  // Input importo diretto (modalità amounts e guests)
   document.getElementById('payer-rows')
     ?.addEventListener('input', e => {
       const input = e.target.closest('[data-pamt]');
       if (!input) return;
       const pid = input.dataset.pamt;
-      _form.payerAmountsMap[pid] = parseFloat(input.value) || 0;
-      _refreshPayerSummary(trip);
-      _refreshDistributeBtn(trip);
+      const val = parseFloat(input.value);
+      // Salva null (non ancora inserito) vs valore reale — evita confusione con 0
+      if (!isNaN(val) && val > 0) {
+        _form.payerAmountsMap[pid] = val;
+      } else {
+        delete _form.payerAmountsMap[pid];
+      }
+      // In guests mode non chiamare _refreshDistributeBtn (causerebbe re-render che azzera il campo)
+      if (_form.payerMode === 'amounts') {
+        _refreshPayerSummary(trip);
+        _refreshDistributeBtn(trip);
+      }
     });
 
   // Guests mode: toggle paga/ospite
@@ -832,13 +847,27 @@ function _bindPayerEvents(trip) {
       if (!btn) return;
       const pid = btn.dataset.gtoggle;
       _form.guestMap[pid] = !_form.guestMap[pid];
-      // Se diventa payer, rimuovi da guestPayerMap
-      if (!_form.guestMap[pid]) delete _form.guestPayerMap[pid];
-      // Se diventa ospite, rimuovi eventuali ospiti che erano assegnati a lui
+
       if (_form.guestMap[pid]) {
-        for (const [gPid, pPid] of Object.entries(_form.guestPayerMap)) {
-          if (pPid === pid) delete _form.guestPayerMap[gPid];
+        // Diventa ospite: rimuovi da payerPids, cancella importo, pulisci assegnazioni ospiti
+        const idx = _form.payerPids.indexOf(pid);
+        if (idx !== -1) _form.payerPids.splice(idx, 1);
+        delete _form.payerAmountsMap[pid];
+        delete _form.payerSharesMap[pid];
+        // Rimuovi questo payer dalle assegnazioni degli altri ospiti
+        for (const [gPid, payerIds] of Object.entries(_form.guestPayerMap)) {
+          if (Array.isArray(payerIds)) {
+            const filtered = payerIds.filter(id => id !== pid);
+            if (filtered.length) _form.guestPayerMap[gPid] = filtered;
+            else delete _form.guestPayerMap[gPid];
+          } else if (payerIds === pid) {
+            delete _form.guestPayerMap[gPid];
+          }
         }
+      } else {
+        // Diventa pagante: aggiungi a payerPids, rimuovi da guestPayerMap (non è più ospite)
+        if (!_form.payerPids.includes(pid)) _form.payerPids.push(pid);
+        delete _form.guestPayerMap[pid];
       }
       _refreshPayers(trip);
     });
@@ -882,6 +911,8 @@ function _bindPayerEvents(trip) {
 }
 
 function _refreshDistributeBtn(trip) {
+  // Solo in modalità 'amounts' — evita re-render indesiderati in altre modalità
+  if (_form.payerMode !== 'amounts') return;
   const btn = document.querySelector('[data-action="distribute-remaining"]');
   const total    = parseFloat(_form.amount) || 0;
   const assigned = _form.payerPids.reduce(
@@ -1069,6 +1100,14 @@ async function _handleSave(trip) {
               payerIds: Array.isArray(payerIds) ? payerIds : [payerIds],
             }))
         : undefined,
+      // Salva gli importi effettivamente versati (solo modalità ospiti)
+      // Permette di distinguere "importo inserito dall'utente" da "quota teorica"
+      payerAmounts: _form.payerMode === 'guests'
+        ? Object.fromEntries(
+            Object.entries(_form.payerAmountsMap)
+              .filter(([pid]) => !_form.guestMap[pid] && _form.payerAmountsMap[pid] != null)
+          )
+        : undefined,
     },
   };
 
@@ -1126,10 +1165,10 @@ function _buildPayers() {
       .filter(pid => !_form.guestMap[pid])
       .map(pid => {
         const theoretical = _payerGuestTotal(pid) || 0.01;
-        const entered     = _form.payerAmountsMap[pid];
+        const entered     = _form.payerAmountsMap[pid]; // null se non inserito (vedi input listener)
         return {
           participantId: pid,
-          sharesPaid: (entered != null && entered > 0) ? entered : theoretical,
+          sharesPaid: (entered != null) ? entered : theoretical,
           paid: _form.payerPaidMap[pid] !== false,
         };
       });
@@ -1500,6 +1539,19 @@ function _formFromExpense(expense, trip) {
       guestMap[g.guestId]      = true;
       // Compatibilità con vecchio formato { payerId } e nuovo { payerIds[] }
       guestPayerMap[g.guestId] = g.payerIds ?? (g.payerId ? [g.payerId] : []);
+    }
+    // Ripristina gli importi effettivamente versati da splitMeta.payerAmounts
+    // (salvati separatamente per distinguerli dalla quota teorica)
+    if (splitMeta.payerAmounts) {
+      for (const [pid, amt] of Object.entries(splitMeta.payerAmounts)) {
+        if (amt != null && amt > 0) payerAmountsMap[pid] = amt;
+      }
+    } else {
+      // Fallback per spese salvate prima di v84: usa sharesPaid come importo versato
+      // (potrebbe essere la quota teorica, ma è la miglior approssimazione disponibile)
+      payers.forEach(p => {
+        if (p.sharesPaid > 0) payerAmountsMap[p.participantId] = p.sharesPaid;
+      });
     }
   }
 
