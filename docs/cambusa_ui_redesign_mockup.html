@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=380">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f1e24; font-family:'Sora',sans-serif; color:#fff; display:flex; gap:16px; padding:16px; flex-wrap:wrap; }
+
+  /* ── Phone shell ── */
+  .phone { width:340px; background:#f2f4f5; border-radius:36px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,0.5); position:relative; flex-shrink:0; }
+  .phone-label { color:#8899a0; font-size:11px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+
+  /* ── Colors ── */
+  :root {
+    --navy:   #1D3844;
+    --teal:   #2FA7A0;
+    --coral:  #F47461;
+    --bg:     #f2f4f5;
+    --card:   #ffffff;
+    --text:   #1D3844;
+    --sub:    #6b8898;
+  }
+
+  /* ══════════════════════════════════
+     SCREEN A — Home redesign
+  ══════════════════════════════════ */
+  .screen { background:var(--bg); min-height:680px; position:relative; }
+
+  /* Hero */
+  .hero {
+    background: var(--navy);
+    padding: 20px 20px 32px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::after {
+    content:'';
+    position:absolute;
+    bottom:-24px; left:0; right:0; height:48px;
+    background:var(--bg);
+    border-radius:24px 24px 0 0;
+  }
+  .hero-topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:24px;
+  }
+  .logo-hero {
+    display:flex; align-items:center; gap:10px;
+  }
+  .logo-svg { width:36px; height:36px; }
+  .logo-word { font-size:18px; font-weight:700; letter-spacing:-.02em; color:#fff; }
+  .hero-avatar { width:32px; height:32px; border-radius:50%; background:var(--teal); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; }
+
+  .hero-balance {
+    text-align:center;
+    padding:8px 0 0;
+    position:relative; z-index:1;
+  }
+  .balance-label { font-size:11px; font-weight:500; color:rgba(255,255,255,.5); letter-spacing:.06em; text-transform:uppercase; margin-bottom:4px; }
+  .balance-amount { font-size:38px; font-weight:700; letter-spacing:-.03em; color:#fff; line-height:1; }
+  .balance-sub { font-size:12px; color:rgba(255,255,255,.45); margin-top:4px; }
+
+  /* Orbital ring in hero */
+  .hero-orbit { display:flex; justify-content:center; margin-top:16px; position:relative; z-index:1; }
+
+  /* Trip cards */
+  .cards-section { padding:8px 14px 90px; }
+  .section-label { font-size:11px; font-weight:600; color:var(--sub); letter-spacing:.06em; text-transform:uppercase; padding:8px 2px 10px; }
+
+  .trip-card {
+    background:var(--card);
+    border-radius:18px;
+    padding:14px 14px 12px;
+    margin-bottom:10px;
+    box-shadow: 0 2px 12px rgba(29,56,68,.07), 0 1px 3px rgba(29,56,68,.04);
+    position:relative;
+    overflow:hidden;
+  }
+  .card-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .card-title { font-size:15px; font-weight:700; color:var(--text); letter-spacing:-.01em; }
+  .card-meta { font-size:11px; color:var(--sub); margin-top:2px; font-weight:400; }
+  .card-visual { flex-shrink:0; }
+
+  .card-bottom { display:flex; align-items:center; justify-content:space-between; margin-top:10px; }
+  .avatars { display:flex; }
+  .av { width:22px; height:22px; border-radius:50%; border:2px solid var(--card); margin-left:-6px; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; }
+  .av:first-child { margin-left:0; }
+  .card-balance { font-size:13px; font-weight:700; }
+  .card-balance.credit { color:var(--teal); }
+  .card-balance.neutral { color:var(--sub); font-weight:500; }
+
+  /* Micro arc SVG for cards */
+  .micro-arc { }
+
+  /* ── BottomNav redesign ── */
+  .bottomnav {
+    position:absolute; bottom:0; left:0; right:0; height:76px;
+    background:rgba(255,255,255,.92);
+    backdrop-filter:blur(16px);
+    -webkit-backdrop-filter:blur(16px);
+    border-top:1px solid rgba(29,56,68,.06);
+    box-shadow:0 -4px 24px rgba(29,56,68,.06);
+    display:flex; align-items:flex-end; justify-content:space-around;
+    padding-bottom:12px;
+    border-radius:0 0 36px 36px;
+  }
+  .nav-item {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    width:52px; cursor:pointer; padding-top:10px; position:relative;
+  }
+  .nav-icon { font-size:18px; line-height:1; }
+  .nav-label-text { font-size:10px; font-weight:500; color:var(--sub); font-family:'Sora',sans-serif; }
+  .nav-item.active .nav-label-text { color:var(--teal); font-weight:700; }
+  .nav-arc {
+    position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:32px; height:3px;
+  }
+  /* FAB */
+  .fab-wrap {
+    display:flex; flex-direction:column; align-items:center; padding-top:4px;
+  }
+  .fab {
+    width:48px; height:48px; border-radius:50%;
+    background:var(--navy);
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 16px rgba(29,56,68,.35);
+    position:relative;
+  }
+  .fab-plus { color:#fff; font-size:22px; font-weight:300; line-height:1; }
+  .fab-ring {
+    position:absolute; inset:-5px;
+    border-radius:50%;
+    pointer-events:none;
+  }
+
+  /* ══════════════════════════════════
+     SCREEN B — Annotations
+  ══════════════════════════════════ */
+  .annotation-box {
+    background:#1a2d35;
+    border-radius:20px;
+    padding:16px;
+    width:340px;
+  }
+  .ann-title { font-size:13px; font-weight:700; color:var(--teal); margin-bottom:12px; letter-spacing:.03em; }
+  .ann-item { display:flex; gap:10px; margin-bottom:10px; align-items:flex-start; }
+  .ann-num { width:20px; height:20px; border-radius:50%; background:var(--teal); color:#fff; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+  .ann-text { font-size:12px; color:rgba(255,255,255,.8); line-height:1.5; }
+  .ann-text strong { color:#fff; }
+
+  .divider { width:100%; height:1px; background:rgba(255,255,255,.08); margin:8px 0 10px; }
+</style>
+</head>
+<body>
+
+<!-- ── Phone: Home redesign ── -->
+<div>
+  <div class="phone-label">Home — redesign proposto</div>
+  <div class="phone">
+    <div class="screen">
+
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-topbar">
+          <div class="logo-hero">
+            <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465 L 55.823 28.267 A 22.5 22.5 0 1 0 55.823 71.733 Z" fill="#1D3844"/>
+              <path d="M 85.224 74.664 A 43 43 0 0 1 61.129 91.535 L 55.823 71.733 A 22.5 22.5 0 0 0 68.431 62.905 Z" fill="#2FA7A0"/>
+              <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336 L 68.431 37.095 A 22.5 22.5 0 0 0 55.823 28.267 Z" fill="#F47461"/>
+            </svg>
+            <span class="logo-word">Cambusa</span>
+          </div>
+          <div class="hero-avatar">G</div>
+        </div>
+
+        <!-- Balance + orbit -->
+        <div class="hero-balance">
+          <div class="balance-label">Saldo equipaggio</div>
+          <div class="balance-amount">−€ 234</div>
+          <div class="balance-sub">su 3 viaggi attivi · 9 persone</div>
+        </div>
+
+        <!-- Orbital participation ring -->
+        <div class="hero-orbit">
+          <svg width="220" height="56" viewBox="0 0 220 56">
+            <!-- Orbit track -->
+            <ellipse cx="110" cy="48" rx="96" ry="28" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1.5"/>
+            <!-- Avatars on orbit -->
+            <circle cx="14" cy="48" r="14" fill="#2FA7A0" opacity=".9"/>
+            <text x="14" y="52" text-anchor="middle" font-size="10" fill="white" font-family="Sora" font-weight="600">L</text>
+            <circle cx="52" cy="27" r="12" fill="#F47461" opacity=".85"/>
+            <text x="52" y="31" text-anchor="middle" font-size="9" fill="white" font-family="Sora" font-weight="600">M</text>
+            <circle cx="110" cy="20" r="12" fill="#2FA7A0" opacity=".75"/>
+            <text x="110" y="24" text-anchor="middle" font-size="9" fill="white" font-family="Sora" font-weight="600">A</text>
+            <circle cx="168" cy="27" r="12" fill="#1D3844" stroke="rgba(255,255,255,.2)" stroke-width="1" opacity=".9"/>
+            <text x="168" y="31" text-anchor="middle" font-size="9" fill="white" font-family="Sora" font-weight="600">B</text>
+            <circle cx="206" cy="48" r="14" fill="#F47461" opacity=".8"/>
+            <text x="206" y="52" text-anchor="middle" font-size="10" fill="white" font-family="Sora" font-weight="600">+4</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <div class="cards-section">
+        <div class="section-label">Viaggi attivi</div>
+
+        <!-- Card 1: active -->
+        <div class="trip-card">
+          <div class="card-top">
+            <div>
+              <div class="card-title">Villa Sardegna</div>
+              <div class="card-meta">12–19 ago · Alghero</div>
+            </div>
+            <div class="card-visual">
+              <!-- Micro segmented arc — replica geometria logo -->
+              <svg width="44" height="44" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="#eef1f2" stroke-width="10"/>
+                <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465" fill="none" stroke="#1D3844" stroke-width="10" stroke-linecap="round"/>
+                <path d="M 85.224 74.664 A 43 43 0 0 1 61.129 91.535" fill="none" stroke="#2FA7A0" stroke-width="10" stroke-linecap="round"/>
+                <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336" fill="none" stroke="#F47461" stroke-width="10" stroke-linecap="round"/>
+                <text x="50" y="56" text-anchor="middle" font-size="18" font-family="Sora" font-weight="700" fill="#1D3844">9</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-bottom">
+            <div class="avatars">
+              <div class="av" style="background:#2FA7A0;color:#fff">L</div>
+              <div class="av" style="background:#F47461;color:#fff">M</div>
+              <div class="av" style="background:#1D3844;color:#fff">A</div>
+              <div class="av" style="background:#8aa8b2;color:#fff">+6</div>
+            </div>
+            <div class="card-balance credit">Tu: +€ 0</div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="trip-card">
+          <div class="card-top">
+            <div>
+              <div class="card-title">Weekend Lago</div>
+              <div class="card-meta">3–5 mag · Como</div>
+            </div>
+            <div class="card-visual">
+              <svg width="44" height="44" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="38" fill="none" stroke="#eef1f2" stroke-width="10"/>
+                <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465" fill="none" stroke="#1D3844" stroke-width="10" stroke-linecap="round" opacity=".35"/>
+                <path d="M 85.224 74.664 A 43 43 0 0 1 61.129 91.535" fill="none" stroke="#2FA7A0" stroke-width="10" stroke-linecap="round" opacity=".35"/>
+                <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336" fill="none" stroke="#F47461" stroke-width="10" stroke-linecap="round" opacity=".35"/>
+                <text x="50" y="56" text-anchor="middle" font-size="18" font-family="Sora" font-weight="700" fill="#8aa8b2">4</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card-bottom">
+            <div class="avatars">
+              <div class="av" style="background:#2FA7A0;color:#fff">L</div>
+              <div class="av" style="background:#1D3844;color:#fff">B</div>
+              <div class="av" style="background:#F47461;color:#fff">C</div>
+              <div class="av" style="background:#8aa8b2;color:#fff">+1</div>
+            </div>
+            <div class="card-balance credit" style="color:#F47461">Tu: −€ 87</div>
+          </div>
+        </div>
+
+      </div><!-- /cards -->
+
+      <!-- BottomNav redesign -->
+      <div class="bottomnav">
+
+        <div class="nav-item active">
+          <svg class="nav-arc" viewBox="0 0 32 3">
+            <path d="M 2 1.5 Q 16 0 30 1.5" stroke="#2FA7A0" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span class="nav-icon">🏠</span>
+          <span class="nav-label-text">Home</span>
+        </div>
+
+        <div class="nav-item">
+          <svg class="nav-arc" viewBox="0 0 32 3"><rect width="0" height="0"/></svg>
+          <span class="nav-icon">🧾</span>
+          <span class="nav-label-text">Spese</span>
+        </div>
+
+        <!-- FAB con doppio anello -->
+        <div class="fab-wrap">
+          <div class="fab">
+            <svg class="fab-ring" viewBox="0 0 58 58">
+              <!-- Outer broken ring — geometria Compass Split -->
+              <path d="M 33.5 54 A 27 27 0 1 1 33.5 4" fill="none" stroke="#2FA7A0" stroke-width="2" stroke-linecap="round" opacity=".6"/>
+              <path d="M 51.4 43.9 A 27 27 0 0 1 33.5 54" fill="none" stroke="#F47461" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+              <path d="M 33.5 4 A 27 27 0 0 1 51.4 14.1" fill="none" stroke="#F47461" stroke-width="2" stroke-linecap="round" opacity=".8"/>
+            </svg>
+            <span class="fab-plus">+</span>
+          </div>
+        </div>
+
+        <div class="nav-item">
+          <svg class="nav-arc" viewBox="0 0 32 3"><rect width="0" height="0"/></svg>
+          <span class="nav-icon">💰</span>
+          <span class="nav-label-text">Saldi</span>
+        </div>
+
+        <div class="nav-item">
+          <svg class="nav-arc" viewBox="0 0 32 3"><rect width="0" height="0"/></svg>
+          <span class="nav-icon">⚙️</span>
+          <span class="nav-label-text">Altro</span>
+        </div>
+
+      </div><!-- /bottomnav -->
+    </div><!-- /screen -->
+  </div><!-- /phone -->
+</div>
+
+<!-- ── Annotations ── -->
+<div class="annotation-box">
+  <div class="ann-title">Modifiche proposte — priorità</div>
+
+  <div class="ann-item">
+    <div class="ann-num">1</div>
+    <div class="ann-text"><strong>Hero sezione</strong> — saldo equipaggio + orbita partecipanti. Sostituisce la lista piatta all'inizio.</div>
+  </div>
+  <div class="ann-item">
+    <div class="ann-num">2</div>
+    <div class="ann-text"><strong>Micro-arc nelle card</strong> — replica geometria logo (C segmentato) con numero partecipanti al centro. Colori attenuati = viaggio archiviato.</div>
+  </div>
+  <div class="ann-item">
+    <div class="ann-num">3</div>
+    <div class="ann-text"><strong>BottomNav</strong> — arco teal curvo sopra l'icona attiva. Backdrop blur + ombra soffice. Sostituisce il semplice highlight.</div>
+  </div>
+  <div class="ann-item">
+    <div class="ann-num">4</div>
+    <div class="ann-text"><strong>FAB</strong> — doppio anello spezzato (teal + coral) che riprende Compass Split. Già con la geometria giusta.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="ann-item">
+    <div class="ann-num" style="background:#F47461">!</div>
+    <div class="ann-text"><strong>Font Sora già installato</strong> (v68). Serve solo applicarlo con più peso su titoli, numeri saldo, splash.</div>
+  </div>
+  <div class="ann-item">
+    <div class="ann-num" style="background:#F47461">!</div>
+    <div class="ann-text"><strong>Sistema geometrico</strong>: lo stesso micro-arc va nelle notifiche, loader, indicatori saldo — così il logo "nasce" dalla UI invece di starci sopra.</div>
+  </div>
+</div>
+
+</body>
+</html>
