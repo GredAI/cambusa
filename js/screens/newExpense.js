@@ -1164,57 +1164,40 @@ function _buildConsumers() {
 
 function _buildPayers() {
   if (_form.payerMode === 'guests') {
-    // Solo i consumatori non-ospiti.
+    // In modalità Con ospiti, sharesPaid = responsabilità teorica di ciascun pagante
+    // (quota propria + quote degli ospiti assegnati, divise equamente tra co-paganti).
     //
-    // INVARIANTE CRITICO: sum(sharesPaid) deve essere esattamente uguale a
-    // _form.amount affinché il motore contabile (state.js) calcoli i crediti
-    // correttamente (unit = amountCents / totalPS = 100 cent/euro).
+    // PERCHÉ TEORICA e non l'importo versato in cassa:
+    //   1. sum(_payerGuestTotal) = amount per costruzione → motore contabile corretto
+    //   2. I suggerimenti "Da saldare" rispettano le relazioni ospite→pagante
     //
-    // Strategia:
-    //   1. Chi ha un importo inserito manualmente (payerAmountsMap) → usa quello esatto.
-    //   2. I rimanenti ricevono in proporzione alle loro quote teoriche la differenza
-    //      (total − sum degli importi inseriti), con l'ultimo che assorbe gli arrotondamenti.
-    const total        = parseFloat(_form.amount) || 0;
+    // L'importo inserito nel campo "versato" (payerAmountsMap) è solo un tracker di
+    // pagamento (mostrato come rimanente nel UI), NON influenza i crediti contabili.
     const nonGuestPids = _form.consumerPids.filter(pid => !_form.guestMap[pid]);
 
-    // Prima passata: separa "entered" da "theoretical"
-    let totalEntered     = 0;
-    let totalTheoretical = 0;
-    const entries = nonGuestPids.map(pid => {
-      const entered     = _form.payerAmountsMap[pid] ?? null; // null = non inserito
-      const theoretical = _payerGuestTotal(pid) || 0.01;
-      if (entered != null) totalEntered     += entered;
-      else                 totalTheoretical += theoretical;
-      return { pid, entered, theoretical };
-    });
+    // L'ultimo payer assorbe gli arrotondamenti per garantire sum = amount esatto
+    const total = parseFloat(_form.amount) || 0;
+    const theoreticals = nonGuestPids.map(pid => _payerGuestTotal(pid) || 0.01);
+    const theoreticalSum = theoreticals.reduce((s, v) => s + v, 0);
+    let leftover = total;
 
-    // Quanto rimane da distribuire tra i payers senza importo inserito
-    const remaining       = Math.round((total - totalEntered) * 100) / 100;
-    const theoreticalRows = entries.filter(e => e.entered == null);
-
-    // Seconda passata: calcola sharesPaid per i "theoretical"
-    // (l'ultimo assorbe il residuo per azzerare gli arrotondamenti)
-    const computedMap = {};
-    let leftover = remaining;
-    theoreticalRows.forEach(({ pid, theoretical }, i) => {
-      let share;
-      if (i === theoreticalRows.length - 1) {
-        share = Math.max(0.01, Math.round(leftover * 100) / 100);
+    return nonGuestPids.map((pid, i) => {
+      let sharesPaid;
+      if (i === nonGuestPids.length - 1) {
+        sharesPaid = Math.max(0.01, Math.round(leftover * 100) / 100);
       } else {
-        share = totalTheoretical > 0
-          ? Math.floor((theoretical / totalTheoretical * remaining) * 100) / 100
-          : 0.01;
-        share    = Math.max(0.01, share);
-        leftover = Math.round((leftover - share) * 100) / 100;
+        sharesPaid = theoreticalSum > 0
+          ? Math.round((theoreticals[i] / theoreticalSum * total) * 100) / 100
+          : Math.round((total / nonGuestPids.length) * 100) / 100;
+        sharesPaid = Math.max(0.01, sharesPaid);
+        leftover   = Math.round((leftover - sharesPaid) * 100) / 100;
       }
-      computedMap[pid] = share;
+      return {
+        participantId: pid,
+        sharesPaid,
+        paid: _form.payerPaidMap[pid] !== false,
+      };
     });
-
-    return entries.map(({ pid, entered }) => ({
-      participantId: pid,
-      sharesPaid:    entered != null ? entered : (computedMap[pid] ?? 0.01),
-      paid:          _form.payerPaidMap[pid] !== false,
-    }));
   }
   if (_form.payerMode === 'amounts') {
     return _form.payerPids.map(pid => ({

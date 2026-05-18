@@ -141,26 +141,93 @@ export const State = {
   },
 
   // ─────────────────────────────────────────────────────
-  // SUGGESTED SETTLEMENTS (pure greedy matching)
+  // SUGGESTED SETTLEMENTS
+  //
+  // Algoritmo in due fasi:
+  //   Fase 1 — settlement diretti basati sulle relazioni ospite→pagante
+  //             (da splitMeta.guests di ogni spesa in modalità "guests")
+  //   Fase 2 — greedy standard sui saldi residui
+  //
+  // Questo garantisce che gli ospiti saldino con chi ha pagato per loro,
+  // non con il creditore maggiore scelto matematicamente.
   // ─────────────────────────────────────────────────────
 
   suggestedSettlements(trip, expenses, settlements) {
-    const bal = this.balances(trip, expenses, settlements);
+    const exps = expenses ?? this.expenses;
+    const bal  = this.balances(trip, exps, settlements);
 
-    const credits = bal
-      .filter(b => b.balance > 0)
-      .sort((a, b) => b.balance - a.balance);
-
-    const debts = bal
-      .filter(b => b.balance < 0)
-      .sort((a, b) => a.balance - b.balance);
+    // Mappa saldi mutabili per aggiornamento in-place
+    const balMap = {};
+    bal.forEach(b => { balMap[b.participant.id] = b.balance; });
 
     const txs = [];
-    let i = 0, j = 0;
 
+    // ── Fase 1: settlement diretti ospite→pagante ──────
+    // Per ogni spesa guests: costruisce le coppie (ospite → suo pagante)
+    // proporzionali alla quota consumata e al numero di co-paganti.
+    for (const e of exps) {
+      if (!e.splitMeta?.guests?.length) continue;
+
+      const consumers = e.consumers ?? [];
+      const totalCS   = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
+      if (totalCS === 0) continue;
+
+      const amountCents = readAmount(e);
+
+      for (const { guestId, payerIds } of e.splitMeta.guests) {
+        if (!payerIds?.length) continue;
+        const guestC = consumers.find(c => c.participantId === guestId);
+        if (!guestC) continue;
+
+        // Quota dell'ospite divisa equamente tra i co-paganti
+        const guestTotal = Math.round(amountCents * (guestC.shares ?? 0) / totalCS);
+        const perPayer   = Math.round(guestTotal / payerIds.length);
+
+        for (const payerId of payerIds) {
+          const debtorBal   = balMap[guestId]  ?? 0;
+          const creditorBal = balMap[payerId]   ?? 0;
+          if (debtorBal >= 0 || creditorBal <= 0) continue;
+
+          const amount = Math.min(Math.abs(debtorBal), creditorBal, perPayer);
+          if (amount < 1) continue;
+
+          const from = trip.participants.find(p => p.id === guestId);
+          const to   = trip.participants.find(p => p.id === payerId);
+          if (!from || !to) continue;
+
+          txs.push({ from, to, amountCents: Math.round(amount) });
+          balMap[guestId]  = (balMap[guestId]  ?? 0) + amount;
+          balMap[payerId]  = (balMap[payerId]   ?? 0) - amount;
+        }
+      }
+    }
+
+    // ── Fase 2: greedy sui saldi residui ──────────────
+    const credits = Object.entries(balMap)
+      .filter(([, b]) => b > 0)
+      .map(([id, balance]) => ({
+        participant: trip.participants.find(p => p.id === id),
+        balance,
+      }))
+      .filter(x => x.participant)
+      .sort((a, b) => b.balance - a.balance);
+
+    const debts = Object.entries(balMap)
+      .filter(([, b]) => b < 0)
+      .map(([id, balance]) => ({
+        participant: trip.participants.find(p => p.id === id),
+        balance,
+      }))
+      .filter(x => x.participant)
+      .sort((a, b) => a.balance - b.balance);
+
+    let i = 0, j = 0;
     while (i < credits.length && j < debts.length) {
       const credit = credits[i];
       const debt   = debts[j];
+      if (credit.balance < 1) { i++; continue; }
+      if (Math.abs(debt.balance) < 1) { j++; continue; }
+
       const amount = Math.min(credit.balance, Math.abs(debt.balance));
 
       txs.push({
@@ -172,8 +239,8 @@ export const State = {
       credit.balance -= amount;
       debt.balance   += amount;
 
-      if (credit.balance <= 0) i++;
-      if (debt.balance   >= 0) j++;
+      if (credit.balance < 1) i++;
+      if (debt.balance  > -1) j++;
     }
 
     return txs;
