@@ -110,7 +110,11 @@ export const ExpensesScreen = {
             confirmLabel: 'Elimina',
             danger:       true,
             onConfirm: async () => {
-              await Actions.deleteExpense(id);
+              const result = await Actions.deleteExpense(id);
+              if (!result.ok) {
+                Toast.show('Impossibile eliminare questa spesa', { type: 'error' });
+                return;
+              }
               const badge = document.querySelector('.topbar__badge');
               if (badge) badge.textContent = Selectors.activeGroupExpenseCount();
               document.getElementById('expenses-list').innerHTML = _renderList();
