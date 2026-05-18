@@ -152,6 +152,11 @@ export const Selectors = {
     return State.suggestedSettlements(State.currentTrip, State.expenses, State.settlements);
   },
 
+  giftSummary() {
+    if (!State.currentTrip) return [];
+    return State.giftSummary(State.currentTrip, State.expenses);
+  },
+
   // ── Formatting ────────────────────────────────────────
 
   /**

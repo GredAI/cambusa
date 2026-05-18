@@ -175,6 +175,7 @@ export const BalancesScreen = {
 function _renderContent() {
   const balances  = Selectors.balances();
   const suggested = Selectors.suggestedSettlements();
+  const gifts     = Selectors.giftSummary();
   const confirmed = State.settlements;
   const total     = Selectors.tripTotal();
   const nExp      = Selectors.activeGroupExpenseCount();
@@ -182,7 +183,7 @@ function _renderContent() {
   return `
     ${_renderMiniStats(total, nExp)}
     ${_renderBalances(balances)}
-    ${_renderSettlements(suggested, confirmed)}
+    ${_renderSettlements(suggested, gifts, confirmed)}
     <div class="export-row">
       <button class="share-btn" id="btn-share" style="flex:1">
         <span>↑</span> Condividi
@@ -286,10 +287,10 @@ function _renderBalances(balances) {
 }
 
 // ── Settlements ───────────────────────────────────────
-function _renderSettlements(suggested, confirmed) {
+function _renderSettlements(suggested, gifts, confirmed) {
   const trip = State.currentTrip;
 
-  if (!suggested.length && !confirmed.length) {
+  if (!suggested.length && !gifts.length && !confirmed.length) {
     return `
       <div class="card zero-state-card">
         <p class="zero-state__emoji">🎉</p>
@@ -299,7 +300,8 @@ function _renderSettlements(suggested, confirmed) {
   }
 
   return `
-    ${suggested.length ? _renderSuggestedList(suggested) : _renderAllPaidBanner()}
+    ${suggested.length ? _renderSuggestedList(suggested) : (confirmed.length || gifts.length ? _renderAllPaidBanner() : '')}
+    ${gifts.length ? _renderGiftList(gifts) : ''}
     ${confirmed.length ? _renderConfirmedList(confirmed, trip) : ''}
   `;
 }
@@ -355,6 +357,54 @@ function _renderAllPaidBanner() {
     <div class="card" style="text-align:center; padding: 20px">
       <p style="font-size:24px; margin-bottom:6px">✅</p>
       <p style="font-weight:600; color: var(--color-primary-dark)">Tutti i pagamenti confermati</p>
+    </div>`;
+}
+
+// ── Offerte (facoltative) ─────────────────────────────
+function _renderGiftList(gifts) {
+  const trip = State.currentTrip;
+  const cur  = trip?.currency ?? '€';
+
+  const cards = gifts.map(g => {
+    const euro = (g.amountCents / 100).toFixed(2);
+    return `
+      <div class="settlement-card settlement-card--gift">
+        <div class="gift-card__badge">🎁 Offerta — nessun obbligo</div>
+        <div class="settlement-card__parties">
+          <div class="settlement-card__person">
+            ${participantAvatar(g.from, 'avatar--lg')}
+            <span class="settlement-card__name">${g.from.name}</span>
+          </div>
+          <span class="settlement-card__arrow">→</span>
+          <div class="settlement-card__person">
+            ${participantAvatar(g.to, 'avatar--lg')}
+            <span class="settlement-card__name">${g.to.name}</span>
+          </div>
+        </div>
+        <div class="settlement-card__amount-row">
+          <span class="settlement-card__currency">${cur}</span>
+          <input class="settlement-card__amount-input"
+                 type="number" inputmode="decimal"
+                 value="${euro}" min="0.01" step="0.01"
+                 data-suggested="${euro}" />
+          <span class="settlement-card__suggested-label">facoltativo</span>
+        </div>
+        <button class="settlement-card__cta settlement-card__cta--ghost"
+                data-confirm-settlement
+                data-from="${g.from.id}"
+                data-to="${g.to.id}">
+          Sdebitarsi 💛
+        </button>
+      </div>`;
+  }).join('');
+
+  return `
+    <div class="settlements-section">
+      <div class="section-header" style="padding:0 0 10px">
+        <h3 class="section-title">🎁 Offerte ricevute</h3>
+        <span class="section-sub">facoltative</span>
+      </div>
+      ${cards}
     </div>`;
 }
 

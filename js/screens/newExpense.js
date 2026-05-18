@@ -73,6 +73,7 @@ function _emptyForm(trip) {
     payerPaidMap:     {},         // { pid: bool } — true = già versato, false = da versare
     guestMap:         {},         // { pid: bool } — true = ospite (non paga)
     guestPayerMap:    {},         // { guestPid: payerPid[] } — chi paga per l'ospite (multi)
+    giftMap:          {},         // { pid: bool } — true = ospite riceve offerta (no debito)
     // Transport date sync (solo categoria 'trasporti')
     transportSync:   false,
     transportType:   'andata',   // 'andata' | 'ritorno'
@@ -524,6 +525,7 @@ function _renderGuestRows(trip) {
     const p       = trip.participants.find(x => x.id === pid);
     if (!p) return '';
     const isGuest    = !!_form.guestMap[pid];
+    const isGift     = isGuest && !!_form.giftMap[pid];
     const baseQuota  = _baseQuota(pid);
     const payerTotal = isGuest ? 0 : _payerGuestTotal(pid);
     const assignedIds = (() => {
@@ -607,6 +609,12 @@ function _renderGuestRows(trip) {
               <span class="guest-split-hint">
                 Quota divisa in ${assignedIds.length} parti uguali
               </span>` : ''}
+          </div>
+          <div class="guest-gift-row">
+            <button class="guest-gift-btn ${isGift ? 'guest-gift-btn--active' : ''}"
+                    data-ggift="${pid}">
+              ${isGift ? '🎁 Offerta — nessun debito' : '🎁 Segna come offerta'}
+            </button>
           </div>` : ''}
       </div>`;
   }).join('');
@@ -869,9 +877,10 @@ function _bindPayerEvents(trip) {
           }
         }
       } else {
-        // Diventa pagante: aggiungi a payerPids, rimuovi da guestPayerMap (non è più ospite)
+        // Diventa pagante: aggiungi a payerPids, rimuovi da guestPayerMap/giftMap (non è più ospite)
         if (!_form.payerPids.includes(pid)) _form.payerPids.push(pid);
         delete _form.guestPayerMap[pid];
+        delete _form.giftMap[pid];
       }
       _refreshPayers(trip);
     });
@@ -889,6 +898,16 @@ function _bindPayerEvents(trip) {
       if (idx === -1) arr.push(payerPid);
       else            arr.splice(idx, 1);
       _form.guestPayerMap[guestPid] = arr;
+      _refreshPayers(trip);
+    });
+
+  // Guests mode: toggle offerta/regalo per ospite
+  document.getElementById('payer-rows')
+    ?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-ggift]');
+      if (!btn) return;
+      const pid = btn.dataset.ggift;
+      _form.giftMap[pid] = !_form.giftMap[pid];
       _refreshPayers(trip);
     });
 
@@ -1102,6 +1121,7 @@ async function _handleSave(trip) {
             .map(([guestId, payerIds]) => ({
               guestId,
               payerIds: Array.isArray(payerIds) ? payerIds : [payerIds],
+              gift:     !!_form.giftMap[guestId],
             }))
         : undefined,
       // Salva gli importi effettivamente versati (solo modalità ospiti)
@@ -1557,14 +1577,16 @@ function _formFromExpense(expense, trip) {
   const payerPaidMap = {};
   payers.forEach(p => { payerPaidMap[p.participantId] = p.paid !== false; });
 
-  // Ricostruisce guestMap e guestPayerMap (modalità guests)
+  // Ricostruisce guestMap, guestPayerMap, giftMap (modalità guests)
   const guestMap      = {};
   const guestPayerMap = {};
+  const giftMap       = {};
   if (splitMeta?.payerMode === 'guests' && expense.splitMeta?.guests) {
     for (const g of (expense.splitMeta.guests ?? [])) {
       guestMap[g.guestId]      = true;
       // Compatibilità con vecchio formato { payerId } e nuovo { payerIds[] }
       guestPayerMap[g.guestId] = g.payerIds ?? (g.payerId ? [g.payerId] : []);
+      if (g.gift) giftMap[g.guestId] = true;
     }
     // Ripristina gli importi effettivamente versati da splitMeta.payerAmounts
     // (salvati separatamente per distinguerli dalla quota teorica)
@@ -1603,6 +1625,7 @@ function _formFromExpense(expense, trip) {
     payerPaidMap,
     guestMap,
     guestPayerMap,
+    giftMap,
     // Transport (mai pre-compilato in edit mode)
     transportSync:  false,
     transportType:  'andata',

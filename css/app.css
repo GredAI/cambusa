@@ -372,6 +372,55 @@ body {
   width: 100%;
 }
 
+/* ── Offerta / regalo toggle ──────────────────────────── */
+.guest-gift-row {
+  padding: 8px 0 2px;
+}
+.guest-gift-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1.5px dashed var(--color-border);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.guest-gift-btn--active {
+  border-style: solid;
+  border-color: #d4a96a;
+  background: #fdf6eb;
+  color: #8a6200;
+  font-weight: 600;
+}
+
+/* ── Settlement card — offerta ────────────────────────── */
+.settlement-card--gift {
+  border: 1.5px dashed #d4a96a;
+  background: #fdf6eb;
+  opacity: 0.92;
+}
+.gift-card__badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8a6200;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.settlement-card__cta--ghost {
+  background: transparent;
+  border: 1.5px solid #d4a96a;
+  color: #8a6200;
+}
+.settlement-card__cta--ghost:active {
+  background: #d4a96a22;
+}
+
 /* Bottone "Distribuisci rimanente per quote" */
 .btn-distribute {
   display: block;

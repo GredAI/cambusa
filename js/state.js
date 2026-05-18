@@ -132,6 +132,32 @@ export const State = {
     }
 
     // ─────────────────────────────────────────────
+    // PHASE 3 — Gift adjustments
+    //
+    // Per ogni ospite con gift=true: annulla il suo debito
+    // e riduci il credito del/i pagante/i della stessa cifra.
+    // Invariante sum=0 rispettata (aggiustamento simmetrico).
+    // ─────────────────────────────────────────────
+    for (const e of exps) {
+      if (!e.splitMeta?.guests?.length) continue;
+      const consumers = e.consumers ?? [];
+      const totalCS   = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
+      if (totalCS === 0) continue;
+      const amountCents = readAmount(e);
+      for (const { guestId, payerIds, gift } of e.splitMeta.guests) {
+        if (!gift || !payerIds?.length) continue;
+        const guestC = consumers.find(c => c.participantId === guestId);
+        if (!guestC) continue;
+        const guestDebt  = amountCents * (guestC.shares ?? 0) / totalCS;
+        const perPayer   = guestDebt / payerIds.length;
+        if (map[guestId] !== undefined) map[guestId] += guestDebt;
+        for (const pid of payerIds) {
+          if (map[pid] !== undefined) map[pid] -= perPayer;
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────
     // OUTPUT — arrotondamento a centesimo intero
     // ─────────────────────────────────────────────
     return trip.participants.map(p => ({
@@ -174,7 +200,8 @@ export const State = {
 
       const amountCents = readAmount(e);
 
-      for (const { guestId, payerIds } of e.splitMeta.guests) {
+      for (const { guestId, payerIds, gift } of e.splitMeta.guests) {
+        if (gift) continue; // offerta: il debito è già azzerato, nessun settlement obbligatorio
         if (!payerIds?.length) continue;
         const guestC = consumers.find(c => c.participantId === guestId);
         if (!guestC) continue;
@@ -244,5 +271,44 @@ export const State = {
     }
 
     return txs;
+  },
+
+  // ─────────────────────────────────────────────────────
+  // GIFT SUMMARY
+  //
+  // Restituisce l'elenco delle transazioni "regalo":
+  // ospiti con gift=true e il relativo importo offerto.
+  // Usato per la sezione "Offerte facoltative" nei saldi.
+  // ─────────────────────────────────────────────────────
+  giftSummary(trip, expenses) {
+    const exps   = expenses ?? this.expenses;
+    const result = []; // { from, to, amountCents }
+
+    for (const e of exps) {
+      if (!e.splitMeta?.guests?.length) continue;
+      const consumers = e.consumers ?? [];
+      const totalCS   = consumers.reduce((s, c) => s + (c.shares ?? 0), 0);
+      if (totalCS === 0) continue;
+      const amountCents = readAmount(e);
+
+      for (const { guestId, payerIds, gift } of e.splitMeta.guests) {
+        if (!gift || !payerIds?.length) continue;
+        const guestC = consumers.find(c => c.participantId === guestId);
+        if (!guestC) continue;
+        const guestTotal = Math.round(amountCents * (guestC.shares ?? 0) / totalCS);
+        const perPayer   = Math.round(guestTotal / payerIds.length);
+
+        for (const pid of payerIds) {
+          const from = trip.participants.find(p => p.id === guestId);
+          const to   = trip.participants.find(p => p.id === pid);
+          if (!from || !to) continue;
+          // Raggruppa coppie identiche
+          const existing = result.find(r => r.from.id === from.id && r.to.id === to.id);
+          if (existing) existing.amountCents += perPayer;
+          else          result.push({ from, to, amountCents: perPayer });
+        }
+      }
+    }
+    return result;
   },
 };
