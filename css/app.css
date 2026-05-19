@@ -3291,6 +3291,14 @@ html[data-theme="dark"] .bottom-nav {
 .rs-summary-row--diff span   { color: #7a5a10; }
 .rs-summary-row--diff strong { color: #b07010; }
 
+/* Hint sotto al bottone salva quando manca il pagante */
+.rs-save-hint {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 4px 0 0;
+}
+
 /* Sommario nella quick-payer phase */
 .rs-quick-summary {
   font-size: 14px;

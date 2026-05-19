@@ -165,8 +165,23 @@ function _renderScanSummary() {
     </div>`;
 }
 
+function _renderPayerSection() {
+  const participants = State.currentTrip?.participants ?? [];
+  if (!participants.length) return '';
+  const chips = participants.map(p => `
+    <button class="rs-chip ${_payerIds.has(p.id) ? 'rs-chip--active' : ''}"
+            data-payer-pid-quick="${p.id}">
+      ${_esc(p.name.split(' ')[0])}
+    </button>`).join('');
+  return `
+    <div class="rs-section-label" style="margin-top:20px">Chi ha pagato?</div>
+    <div class="rs-chips-row" id="rs-quick-payer-chips">${chips}</div>`;
+}
+
 function _htmlItems() {
   const canProceed = _items.length > 0;
+  const canSave    = canProceed && _payerIds.size > 0;
+  const total      = _totalCents();
   return `
     <div class="rs-phase" id="rs-phase-items">
 
@@ -187,12 +202,17 @@ function _htmlItems() {
 
       <button class="rs-add-item-btn" id="rs-add-item-btn">+ Aggiungi voce</button>
 
-      <button class="rs-primary-btn" id="rs-items-next-btn" ${canProceed ? '' : 'disabled'}>
-        Avanti — Assegna le voci →
-      </button>
+      ${_renderPayerSection()}
 
-      <button class="rs-secondary-btn" id="rs-quick-create-btn" ${canProceed ? '' : 'disabled'}>
-        Dividi equamente — salta assegnazione
+      <button class="rs-primary-btn" id="rs-quick-create-btn"
+              style="margin-top:20px" ${canSave ? '' : 'disabled'}>
+        ✓ Salva scontrino — ${_fmtCur(total)}
+      </button>
+      ${!_payerIds.size ? `<p class="rs-save-hint">Seleziona chi ha pagato per salvare</p>` : ''}
+
+      <button class="rs-link-btn" id="rs-items-next-btn" ${canProceed ? '' : 'disabled'}
+              style="margin-top:4px">
+        Assegna le voci individualmente →
       </button>
     </div>`;
 }
@@ -340,17 +360,29 @@ function _rerenderAssign() {
   if (main && _phase === 'assign') main.innerHTML = _htmlAssign();
 }
 
-function _rerenderItemsList() {
-  const list     = document.getElementById('rs-items-list');
-  const summary  = document.getElementById('rs-scan-summary');
-  const nextBtn  = document.getElementById('rs-items-next-btn');
-  const quickBtn = document.getElementById('rs-quick-create-btn');
-
+function _rerenderItemsUI() {
+  const list    = document.getElementById('rs-items-list');
+  const summary = document.getElementById('rs-scan-summary');
   if (list)    list.innerHTML    = _renderItemsList();
-  if (summary) summary.outerHTML = _renderScanSummary(); // aggiorna conteggio + diff in live
-  if (nextBtn)  nextBtn.disabled  = _items.length === 0;
-  if (quickBtn) quickBtn.disabled = _items.length === 0;
+  if (summary) summary.outerHTML = _renderScanSummary();
+  _rerenderSaveBtn();
 }
+
+function _rerenderSaveBtn() {
+  const btn     = document.getElementById('rs-quick-create-btn');
+  const nextBtn = document.getElementById('rs-items-next-btn');
+  const chips   = document.getElementById('rs-quick-payer-chips');
+  const canSave = _items.length > 0 && _payerIds.size > 0;
+  if (btn) {
+    btn.disabled    = !canSave;
+    btn.textContent = `✓ Salva scontrino — ${_fmtCur(_totalCents())}`;
+  }
+  if (nextBtn) nextBtn.disabled = _items.length === 0;
+  if (chips)   chips.outerHTML  = _renderPayerSection().match(/<div class="rs-chips-row"[^>]*>[\s\S]*?<\/div>/)?.[0] ?? '';
+}
+
+// Alias per compatibilità interna
+const _rerenderItemsList = _rerenderItemsUI;
 
 // ── Pre-assegna tutti a tutti ─────────────────────────
 
@@ -488,27 +520,22 @@ function _onClick(e) {
       }, 50);
       return;
     }
-    // Sync title + date (comune ad Avanti e shortcut)
+    // Chip pagante inline (data-payer-pid-quick)
+    const payerChip = e.target.closest('[data-payer-pid-quick]');
+    if (payerChip) {
+      const pid = payerChip.dataset.payerPidQuick;
+      _payerIds.has(pid) ? _payerIds.delete(pid) : _payerIds.add(pid);
+      _rerenderSaveBtn();
+      return;
+    }
+
+    // Sync title + date (comune a Salva e Assegna)
     const _syncFields = () => {
       _title = document.getElementById('rs-title-input')?.value?.trim() || _title;
       _date  = document.getElementById('rs-date-input')?.value          || _date;
     };
 
-    // Avanti → Phase 3 (assegnazione completa)
-    if (e.target.closest('#rs-items-next-btn')) {
-      _syncFields();
-      // Rimuove automaticamente le voci senza nome/importo invece di bloccare
-      _items = _items.filter(i => i.name.trim() && i.amountCents > 0);
-      if (_items.length === 0) {
-        Toast.show('Aggiungi almeno una voce con nome e importo', { type: 'info' });
-        return;
-      }
-      _autoAssignAll();
-      _goToAssignPhase();
-      return;
-    }
-
-    // Shortcut: Dividi equamente → mostra solo selezione pagante
+    // ✓ Salva scontrino — dividi equamente tra tutti
     if (e.target.closest('#rs-quick-create-btn')) {
       _syncFields();
       _items = _items.filter(i => i.name.trim() && i.amountCents > 0);
@@ -516,8 +543,25 @@ function _onClick(e) {
         Toast.show('Aggiungi almeno una voce con nome e importo', { type: 'info' });
         return;
       }
+      if (_payerIds.size === 0) {
+        Toast.show('Tocca chi ha pagato prima di salvare', { type: 'info' });
+        return;
+      }
       _autoAssignAll();
-      _goToQuickPayerPhase();
+      _createExpense();
+      return;
+    }
+
+    // Assegna voci individualmente → Phase 3
+    if (e.target.closest('#rs-items-next-btn')) {
+      _syncFields();
+      _items = _items.filter(i => i.name.trim() && i.amountCents > 0);
+      if (_items.length === 0) {
+        Toast.show('Aggiungi almeno una voce con nome e importo', { type: 'info' });
+        return;
+      }
+      _autoAssignAll();
+      _goToAssignPhase();
       return;
     }
     return;
