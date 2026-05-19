@@ -1272,36 +1272,72 @@ body {
 }
 .empty-state__cta:active { background: var(--color-primary-dark); }
 
-/* ── Create Trip: date row ────────────────────────────── */
-.date-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* ── Create Trip: calendario range-picker ─────────────── */
+.date-cal { }
+
+.date-cal__nav {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 10px;
 }
-.date-field {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.date-cal__arrow {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  font-size: 20px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text);
 }
-.date-field__label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.date-cal__arrow:active { opacity: 0.6; }
+.date-cal__month {
+  font-size: 15px; font-weight: 600; color: var(--color-text);
 }
-.input--date {
-  margin-bottom: 0;
-  padding: 12px 14px;
-  font-size: 15px;
-  text-align: center;
+
+.date-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  row-gap: 2px;
 }
-.date-sep {
-  font-size: 18px;
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-  margin-top: 18px;
+.cal-head {
+  text-align: center; font-size: 11px; font-weight: 600;
+  color: var(--color-text-muted); padding: 4px 0 6px;
+}
+
+/* Cella — gestisce il colore di sfondo del range */
+.cal-cell { display: flex; align-items: center; justify-content: center; }
+.cal-cell--in-range    { background: var(--color-primary-bg); }
+.cal-cell--range-start { background: linear-gradient(to right, transparent 50%, var(--color-primary-bg) 50%); }
+.cal-cell--range-end   { background: linear-gradient(to left,  transparent 50%, var(--color-primary-bg) 50%); }
+
+/* Bottone giorno */
+.cal-day {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: none; background: none;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--color-text);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-day--other  { color: var(--color-text-muted); opacity: 0.35; }
+.cal-day--today  { font-weight: 700; color: var(--color-primary); }
+.cal-day--single,
+.cal-day--edge   {
+  background: var(--color-primary); color: white; font-weight: 700;
+}
+.cal-day:active:not(.cal-day--other) { opacity: 0.7; }
+
+/* Riepilogo date sotto la griglia */
+.date-cal__summary {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+  min-height: 44px;
+}
+.cal-range-str {
+  font-size: 14px; font-weight: 600; color: var(--color-text);
+  margin: 0 0 2px;
+}
+.cal-hint {
+  font-size: 12px; color: var(--color-text-muted); margin: 0;
 }
 
 /* ── Create Trip: valuta ──────────────────────────────── */

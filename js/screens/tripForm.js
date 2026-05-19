@@ -52,6 +52,14 @@ let _expandedGid = null;
 let _isDirty     = false;
 let _initialized = false;
 
+// ── Stato calendario ──────────────────────────────────
+let _calYear    = new Date().getFullYear();
+let _calMonth   = new Date().getMonth(); // 0-based
+let _calPicking = 'start'; // 'start' | 'end'
+
+const _MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                    'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+
 function _emptyDraft() {
   return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', customLabel: '', customIcon: '', participants: [], groups: [], splitPresets: [] };
 }
@@ -72,6 +80,96 @@ function _cloneTrip(trip) {
   };
 }
 
+// ── Calendario range-picker ───────────────────────────
+function _renderCal() {
+  const today = new Date().toISOString().slice(0, 10);
+  const year  = _calYear, month = _calMonth;
+
+  const firstDow      = new Date(year, month, 1).getDay();
+  const daysInMon     = new Date(year, month + 1, 0).getDate();
+  const prevDaysInMon = new Date(year, month, 0).getDate();
+  const startOffset   = (firstDow + 6) % 7; // Lun-first
+
+  const start = _draft.startDate || '';
+  const end   = _draft.endDate   || '';
+
+  // ── Stringa range ──────────────────────────────────
+  const _fLoc = (d, opts) => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', opts);
+  let rangeStr = '', hint = '';
+  if (!start) {
+    hint = 'Seleziona il giorno di inizio';
+  } else if (!end || start === end) {
+    rangeStr = _fLoc(start, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    if (_calPicking === 'end') hint = 'Tocca un\'altra data per impostare la fine';
+  } else {
+    const sameYear  = start.slice(0,4) === end.slice(0,4);
+    const sameMonth = start.slice(0,7) === end.slice(0,7);
+    const optsA = sameMonth
+      ? { day: 'numeric' }
+      : sameYear
+      ? { day: 'numeric', month: 'short' }
+      : { day: 'numeric', month: 'short', year: 'numeric' };
+    rangeStr = `${_fLoc(start, optsA)} – ${_fLoc(end, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  }
+
+  // ── Celle ─────────────────────────────────────────
+  const cells = [];
+  for (let i = 0; i < startOffset; i++) {
+    const d  = prevDaysInMon - startOffset + 1 + i;
+    const pm = month === 0 ? 11 : month - 1;
+    const py = month === 0 ? year - 1 : year;
+    cells.push({ dateStr: `${py}-${String(pm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, label: d, other: true });
+  }
+  for (let d = 1; d <= daysInMon; d++) {
+    cells.push({ dateStr: `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, label: d, other: false });
+  }
+  const rem = cells.length % 7 === 0 ? 0 : 7 - (cells.length % 7);
+  for (let d = 1; d <= rem; d++) {
+    const nm = month === 11 ? 0 : month + 1;
+    const ny = month === 11 ? year + 1 : year;
+    cells.push({ dateStr: `${ny}-${String(nm+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`, label: d, other: true });
+  }
+
+  const hasRange = start && end && start !== end;
+
+  const cellsHtml = cells.map(({ dateStr, label, other }) => {
+    const isStart  = dateStr === start;
+    const isEnd    = dateStr === end;
+    const isSingle = isStart && isEnd && !!start;
+    const inRange  = hasRange && dateStr > start && dateStr < end;
+    const isToday  = dateStr === today;
+
+    let cellCls = 'cal-cell';
+    if (hasRange) {
+      if (isStart)   cellCls += ' cal-cell--range-start';
+      else if (isEnd)  cellCls += ' cal-cell--range-end';
+      else if (inRange) cellCls += ' cal-cell--in-range';
+    }
+    let dayCls = 'cal-day';
+    if (other)   dayCls += ' cal-day--other';
+    if (isToday && !isStart && !isEnd) dayCls += ' cal-day--today';
+    if (isSingle)              dayCls += ' cal-day--single';
+    else if (isStart || isEnd) dayCls += ' cal-day--edge';
+
+    return `<div class="${cellCls}"><button class="${dayCls}" data-calday="${dateStr}"${other ? ' tabindex="-1"' : ''}>${label}</button></div>`;
+  }).join('');
+
+  return `
+    <div class="date-cal__nav">
+      <button class="date-cal__arrow" data-cal="prev">‹</button>
+      <span class="date-cal__month">${_MONTHS_IT[month]} ${year}</span>
+      <button class="date-cal__arrow" data-cal="next">›</button>
+    </div>
+    <div class="date-cal__grid">
+      ${['L','M','M','G','V','S','D'].map(h => `<span class="cal-head">${h}</span>`).join('')}
+      ${cellsHtml}
+    </div>
+    <div class="date-cal__summary">
+      ${rangeStr ? `<p class="cal-range-str">${rangeStr}</p>` : ''}
+      ${hint     ? `<p class="cal-hint">${hint}</p>` : ''}
+    </div>`;
+}
+
 // ── Screen ────────────────────────────────────────────
 export const TripFormScreen = {
 
@@ -86,6 +184,14 @@ export const TripFormScreen = {
       }
       _initialized = true;
     }
+
+    // Inizializza mese calendario al mese della data di inizio (o oggi)
+    const _calInit = _draft.startDate
+      ? new Date(_draft.startDate + 'T00:00:00')
+      : new Date();
+    _calYear    = _calInit.getFullYear();
+    _calMonth   = _calInit.getMonth();
+    _calPicking = 'start';
 
     const isEdit  = _mode === 'edit';
     const typeInfo = tripTypeInfo(_draft);
@@ -131,19 +237,11 @@ export const TripFormScreen = {
                    placeholder="es. Creta" value="${_h(_draft.location)}" style="margin-bottom:0" />
           </div>
 
-          <!-- Date -->
+          <!-- Date: calendario range-picker -->
           <div class="card">
-            <label class="field-label">Date *</label>
-            <div class="date-row">
-              <div class="date-field">
-                <span class="date-field__label">Dal</span>
-                <input id="f-start" class="input input--date" type="date" value="${_draft.startDate}" />
-              </div>
-              <span class="date-sep">→</span>
-              <div class="date-field">
-                <span class="date-field__label">Al</span>
-                <input id="f-end" class="input input--date" type="date" value="${_draft.endDate}" />
-              </div>
+            <label class="field-label">Data *</label>
+            <div class="date-cal" id="date-cal-wrap">
+              ${_renderCal()}
             </div>
           </div>
 
@@ -250,8 +348,45 @@ export const TripFormScreen = {
     // Dirty tracking campi principali
     ['f-name', 'f-location'].forEach(id =>
       document.getElementById(id)?.addEventListener('input', () => { _isDirty = true; }));
-    ['f-start', 'f-end'].forEach(id =>
-      document.getElementById(id)?.addEventListener('change', () => { _isDirty = true; }));
+
+    // Calendario range-picker
+    document.getElementById('date-cal-wrap')?.addEventListener('click', e => {
+      // Navigazione mese
+      const arrow = e.target.closest('[data-cal]');
+      if (arrow) {
+        if (arrow.dataset.cal === 'prev') {
+          _calMonth--;
+          if (_calMonth < 0) { _calMonth = 11; _calYear--; }
+        } else {
+          _calMonth++;
+          if (_calMonth > 11) { _calMonth = 0; _calYear++; }
+        }
+        document.getElementById('date-cal-wrap').innerHTML = _renderCal();
+        return;
+      }
+      // Selezione giorno
+      const dayBtn = e.target.closest('[data-calday]');
+      if (!dayBtn) return;
+      const d = dayBtn.dataset.calday;
+      if (_calPicking === 'start') {
+        _draft.startDate = d;
+        _draft.endDate   = d;
+        _calPicking = 'end';
+      } else {
+        if (d < _draft.startDate) {
+          // Prima dello start: ricomincia
+          _draft.startDate = d;
+          _draft.endDate   = d;
+          _calPicking = 'end';
+        } else {
+          // Fine range (o stessa data = evento singolo)
+          _draft.endDate  = d;
+          _calPicking = 'start';
+        }
+      }
+      _isDirty = true;
+      document.getElementById('date-cal-wrap').innerHTML = _renderCal();
+    });
 
     // Tipo evento
     document.getElementById('type-row')?.addEventListener('click', e => {
@@ -373,17 +508,19 @@ export const TripFormScreen = {
     _isDirty     = false;
     _initialized = false;
     _colorIdx    = 0;
+    _calYear     = new Date().getFullYear();
+    _calMonth    = new Date().getMonth();
+    _calPicking  = 'start';
   },
 };
 
 // ── Salva ─────────────────────────────────────────────
 async function _handleSave() {
   // Leggi i campi al momento del salvataggio (sicuro)
-  _draft.name        = document.getElementById('f-name')?.value.trim()        ?? '';
-  _draft.location    = document.getElementById('f-location')?.value.trim()    ?? '';
-  _draft.startDate   = document.getElementById('f-start')?.value              ?? '';
-  _draft.endDate     = document.getElementById('f-end')?.value                ?? '';
-  _draft.customIcon  = document.getElementById('f-custom-icon')?.value.trim() ?? '';
+  _draft.name        = document.getElementById('f-name')?.value.trim()         ?? '';
+  _draft.location    = document.getElementById('f-location')?.value.trim()     ?? '';
+  // startDate / endDate sono già in _draft (gestiti dal calendario)
+  _draft.customIcon  = document.getElementById('f-custom-icon')?.value.trim()  ?? '';
   _draft.customLabel = document.getElementById('f-custom-label')?.value.trim() ?? '';
 
   if (!_draft.name)                      return Toast.show(`Inserisci il nome del ${tripTypeInfo(_draft).label.toLowerCase()}`, { type: 'error' });

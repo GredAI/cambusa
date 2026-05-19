@@ -97,7 +97,7 @@ export const HomeScreen = {
             <div class="trip-card__info">
               <h2 class="trip-card__name">${typeInfo.icon} ${t.name}</h2>
               <p class="trip-card__sub">${t.location}</p>
-              <p class="trip-card__dates">${f(t.startDate)} – ${f(t.endDate)}</p>
+              <p class="trip-card__dates">${t.startDate === t.endDate ? f(t.startDate) : `${f(t.startDate)} – ${f(t.endDate)}`}</p>
             </div>
             <span class="trip-status trip-status--${status.mod}">${status.label}</span>
           </div>
