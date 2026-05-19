@@ -10,7 +10,6 @@ import { State }     from '../state.js';
 import { Router }    from '../router.js';
 import { Selectors } from '../selectors.js';
 import { Topbar }    from '../ui.js';
-import { Guards }    from '../domain/guards.js';
 import { readAmount, readConsumers, isGroupExpense } from '../domain/guards.js';
 
 // ── Colori categorie (brand palette) ─────────────────
