@@ -135,6 +135,42 @@ export const Modal = {
     );
   },
 
+  /**
+   * Bottom sheet con campo di testo.
+   * onConfirm(value) — valore inserito (già trimmato)
+   */
+  prompt({ title, placeholder = '', value = '', confirmLabel = 'Salva', onConfirm, onCancel }) {
+    const esc = (s) => (s ?? '').replace(/"/g, '&quot;');
+    Modal.sheet({
+      title,
+      body: `<input id="modal-prompt-input" class="input"
+                    type="text" placeholder="${esc(placeholder)}"
+                    value="${esc(value)}"
+                    style="margin-bottom:0" />`,
+      actions: [
+        { label: 'Annulla',    type: 'cancel',  onClick: onCancel },
+        { label: confirmLabel, type: 'primary',  onClick: () => {
+            const v = document.getElementById('modal-prompt-input')?.value.trim() ?? '';
+            onConfirm?.(v);
+          }},
+      ],
+    });
+    // Enter → conferma, focus automatico
+    setTimeout(() => {
+      const el = document.getElementById('modal-prompt-input');
+      if (!el) return;
+      el.focus();
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const v = el.value.trim();
+          Modal.close();
+          onConfirm?.(v);
+        }
+      });
+    }, 150);
+  },
+
   close() {
     const backdrop = ROOT()?.querySelector('#modal-backdrop');
     if (!backdrop) return;

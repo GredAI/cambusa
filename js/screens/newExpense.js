@@ -22,6 +22,7 @@ import { Actions }   from '../actions.js';
 import { Router }    from '../router.js';
 import { Topbar }    from '../ui.js';
 import { Toast }     from '../toast.js';
+import { Modal }     from '../ui/modal.js';
 import { readAmount } from '../domain/guards.js';
 import { Selectors } from '../selectors.js';
 import { participantAvatar } from '../components/avatar.js';
@@ -308,6 +309,14 @@ function _renderConsumers(trip) {
                 data-cpreset="g:${g.id}">
           👥 ${g.name}
         </button>`).join('')}
+      ${(trip.splitPresets ?? []).map(sp => `
+        <button class="filter-chip filter-chip--preset ${_form.consumerPreset === 'sp:' + sp.id ? 'filter-chip--active' : ''}"
+                data-cpreset="sp:${sp.id}">
+          ⭐ ${sp.name}
+        </button>`).join('')}
+      <button class="filter-chip split-save-btn" data-action="save-split-preset" title="Salva questa selezione come preset">
+        + Salva
+      </button>
     </div>
 
     <div class="split-mode-toggle" id="consumer-mode">
@@ -738,6 +747,25 @@ function _bindConsumerEvents(trip) {
   // Preset
   document.getElementById('consumer-presets')
     ?.addEventListener('click', e => {
+      // Salva selezione come preset
+      if (e.target.closest('[data-action="save-split-preset"]')) {
+        Modal.prompt({
+          title:        'Salva divisione',
+          placeholder:  'es. Solo coppia, Adulti…',
+          confirmLabel: 'Salva',
+          onConfirm: async (name) => {
+            if (!name) return;
+            const result = await Actions.saveSplitPreset(trip.id, {
+              name,
+              participantIds: [..._form.consumerPids],
+            });
+            if (!result.ok) { Toast.show('Impossibile salvare il preset', { type: 'error' }); return; }
+            Toast.show(`Preset "${name}" salvato ⭐`, { type: 'success' });
+            _refreshConsumers(trip);  // aggiorna i chip
+          },
+        });
+        return;
+      }
       const btn = e.target.closest('[data-cpreset]');
       if (!btn) return;
       _applyConsumerPreset(btn.dataset.cpreset, trip);
@@ -1100,6 +1128,19 @@ function _applyConsumerPreset(preset, trip) {
       if (_form.consumerPids.length === 0) {
         _form.consumerPids = trip.participants.map(p => p.id);
         Toast.show(`Gruppo "${group.name}" è vuoto — selezionati tutti`, { type: 'info' });
+      }
+    }
+
+  } else if (preset.startsWith('sp:')) {
+    const spId = preset.slice(3);
+    const sp   = (trip.splitPresets ?? []).find(p => p.id === spId);
+    if (sp) {
+      _form.consumerPids = (sp.participantIds ?? []).filter(
+        pid => trip.participants.find(p => p.id === pid)
+      );
+      if (_form.consumerPids.length === 0) {
+        _form.consumerPids = trip.participants.map(p => p.id);
+        Toast.show(`Preset "${sp.name}" non più valido — selezionati tutti`, { type: 'info' });
       }
     }
 

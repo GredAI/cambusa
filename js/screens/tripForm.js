@@ -40,7 +40,7 @@ let _isDirty     = false;
 let _initialized = false;
 
 function _emptyDraft() {
-  return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', participants: [], groups: [] };
+  return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', participants: [], groups: [], splitPresets: [] };
 }
 
 function _cloneTrip(trip) {
@@ -53,6 +53,7 @@ function _cloneTrip(trip) {
     type:         trip.type ?? 'viaggio',
     participants: trip.participants.map(p => ({ ...p })),
     groups:       (trip.groups ?? []).map(g => ({ ...g, members: [...(g.members ?? [])] })),
+    splitPresets: (trip.splitPresets ?? []).map(sp => ({ ...sp, participantIds: [...(sp.participantIds ?? [])] })),
   };
 }
 
@@ -167,6 +168,20 @@ export const TripFormScreen = {
             </div>
           </div>
 
+          <!-- Divisioni predefinite -->
+          <div class="card" id="card-splitpresets">
+            <div class="section-header">
+              <label class="field-label" style="margin:0">Divisioni salvate</label>
+              <span class="section-sub" id="sp-count">
+                ${(_draft.splitPresets?.length ?? 0) > 0 ? _draft.splitPresets.length : 'nessuna'}
+              </span>
+            </div>
+            <p class="field-hint" style="margin-bottom:10px">Crea preset dalla schermata "Nuova spesa" → sezione Chi consuma → <strong>+ Salva</strong>.</p>
+            <div id="splitpresets-list">
+              ${_renderSplitPresets()}
+            </div>
+          </div>
+
           <button class="save-btn" id="btn-save">
             ${isEdit ? 'Salva modifiche' : `Crea ${typeInfo.label}`}
           </button>
@@ -267,6 +282,8 @@ export const TripFormScreen = {
 
     _bindGroupEvents();
 
+    _bindSplitPresetEvents();
+
     document.getElementById('btn-save')?.addEventListener('click', _handleSave);
 
     // Elimina viaggio (solo in edit mode)
@@ -352,7 +369,8 @@ async function _handleSave() {
       name: _draft.name, location: _draft.location,
       startDate: _draft.startDate, endDate: _draft.endDate, currency: _draft.currency,
       type: _draft.type,
-      groups: _draft.groups,
+      groups:       _draft.groups,
+      splitPresets: _draft.splitPresets,
     });
 
     _isDirty = false;
@@ -667,6 +685,53 @@ function _bindGroupEvents() {
       if (_expandedGid === gid) _expandedGid = null;
       _isDirty = true;
       _refreshGroups();
+    });
+  });
+}
+
+// ── Split Presets ─────────────────────────────────────
+
+function _renderSplitPresets() {
+  const presets = _draft.splitPresets ?? [];
+  if (presets.length === 0) {
+    return `<p class="field-hint">Nessuna divisione salvata</p>`;
+  }
+  return presets.map(sp => {
+    const pips = (sp.participantIds ?? [])
+      .map(pid => _draft.participants.find(p => p.id === pid))
+      .filter(Boolean)
+      .map(p => `<span class="group-member-pip" style="background:${p.color}" title="${_h(p.name)}">${p.name.charAt(0).toUpperCase()}</span>`)
+      .join('');
+    return `
+      <div class="sp-item">
+        <span class="sp-item__icon">⭐</span>
+        <div class="sp-item__info">
+          <span class="sp-item__name">${_h(sp.name)}</span>
+          <div class="group-item__members" style="margin-top:4px">
+            ${pips || '<span class="field-hint" style="margin:0;font-size:11px">nessun partecipante valido</span>'}
+          </div>
+        </div>
+        <button class="btn-remove-p" data-removesp="${sp.id}" style="flex-shrink:0">✕</button>
+      </div>`;
+  }).join('');
+}
+
+function _refreshSplitPresets() {
+  const list  = document.getElementById('splitpresets-list');
+  const count = document.getElementById('sp-count');
+  const n     = _draft.splitPresets?.length ?? 0;
+  if (list)  list.innerHTML  = _renderSplitPresets();
+  if (count) count.textContent = n > 0 ? n : 'nessuna';
+}
+
+function _bindSplitPresetEvents() {
+  document.querySelectorAll('[data-removesp]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const spId = e.currentTarget.dataset.removesp;
+      _draft.splitPresets = (_draft.splitPresets ?? []).filter(sp => sp.id !== spId);
+      _isDirty = true;
+      _refreshSplitPresets();
     });
   });
 }

@@ -388,6 +388,43 @@ export const Actions = {
     return Ok({ updated });
   },
 
+  // ── Split Presets ─────────────────────────────────────
+
+  /**
+   * Salva una nuova divisione predefinita nel trip.
+   * @param {string} tripId
+   * @param {{ name: string, participantIds: string[] }} preset
+   */
+  async saveSplitPreset(tripId, preset) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    if (!trip.splitPresets) trip.splitPresets = [];
+    const sp = {
+      id:             crypto.randomUUID(),
+      name:           (preset.name ?? '').trim(),
+      participantIds: preset.participantIds ?? [],
+    };
+    if (!sp.name) return Err(['SPLIT_PRESET_MISSING_NAME']);
+    trip.splitPresets.push(sp);
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(sp);
+  },
+
+  /**
+   * Elimina una divisione predefinita dal trip.
+   */
+  async deleteSplitPreset(tripId, presetId) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    trip.splitPresets = (trip.splitPresets ?? []).filter(sp => sp.id !== presetId);
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(null);
+  },
+
   // ── Export / Import ───────────────────────────────────
 
   /**
