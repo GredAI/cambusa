@@ -3873,3 +3873,91 @@ html[data-theme="dark"] .home-orbit__svg circle:first-child {
 .trip-card:active .compass-split {
   transform: scale(0.94);
 }
+
+/* =====================================================
+   CARD POLISH v108
+   ===================================================== */
+
+/* Typography hierarchy raffinata */
+.trip-card__name {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.1px;
+}
+.trip-card__sub {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: var(--color-text-sub) !important;
+}
+.trip-card__dates {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0.2px;
+  color: var(--color-text-muted) !important;
+}
+
+/* Footer border quasi invisibile */
+.trip-card__footer {
+  border-top-color: rgba(0,0,0,0.04) !important;
+}
+html[data-theme="dark"] .trip-card__footer {
+  border-top-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Card border ultra soft */
+.card {
+  border: 1px solid rgba(0,0,0,0.05) !important;
+}
+html[data-theme="dark"] .card {
+  border-color: rgba(255,255,255,0.05) !important;
+}
+
+/* Micro-stato trip */
+.trip-status {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.trip-status--teal {
+  background: rgba(47,167,160,0.12);
+  color: #2fa7a0;
+}
+.trip-status--amber {
+  background: rgba(212,169,106,0.14);
+  color: #b8893a;
+}
+.trip-status--muted {
+  background: rgba(107,114,128,0.1);
+  color: var(--color-text-muted);
+}
+html[data-theme="dark"] .trip-status--amber {
+  color: #d4a96a;
+}
+
+/* ── Filter chips — glass soft ── */
+.filter-chip {
+  background: rgba(47,167,160,0.05) !important;
+  border: 1px solid rgba(47,167,160,0.14) !important;
+  color: var(--color-text-sub) !important;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: background 0.18s, border-color 0.18s, color 0.18s !important;
+}
+.filter-chip--active {
+  background: rgba(47,167,160,0.14) !important;
+  border-color: rgba(47,167,160,0.38) !important;
+  color: var(--color-primary) !important;
+}
+html[data-theme="dark"] .filter-chip {
+  background: rgba(47,167,160,0.06) !important;
+  border-color: rgba(47,167,160,0.16) !important;
+}
+html[data-theme="dark"] .filter-chip--active {
+  background: rgba(47,167,160,0.18) !important;
+  border-color: rgba(47,167,160,0.42) !important;
+}

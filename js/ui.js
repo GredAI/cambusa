@@ -144,9 +144,9 @@ export function BottomNav(active = '') {
       <svg class="fab-ring" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
         <path d="M 36 5 A 31 31 0 1 0 67 36" stroke="#2FA7A0" stroke-width="3"
               fill="none" stroke-linecap="round"/>
-        <path d="M 67 36 A 31 31 0 0 0 36 5" stroke="#F47461" stroke-width="3"
+        <path d="M 67 36 A 31 31 0 0 0 36 5" stroke="#EF8878" stroke-width="3"
               fill="none" stroke-linecap="round"/>
-        <circle cx="36" cy="5" r="3.5" fill="#F47461"/>
+        <circle cx="36" cy="5" r="3.5" fill="#EF8878"/>
         <circle cx="67" cy="36" r="3.5" fill="#2FA7A0"/>
       </svg>
       <svg class="fab-plus" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

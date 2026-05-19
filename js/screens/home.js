@@ -7,6 +7,16 @@ import { Toast }     from '../toast.js';
 import { Modal }     from '../ui/modal.js';
 import { tripTypeInfo } from '../domain/tripType.js';
 
+// ── Stato trip (calcolato da date, senza caricare spese) ─────
+function _tripStatus(t, nSpese) {
+  if (t.archivedAt) return { label: 'Archiviato', mod: 'muted' };
+  const today = new Date().toISOString().slice(0, 10);
+  if (nSpese === 0)        return { label: 'Nuovo',    mod: 'amber' };
+  if (t.endDate < today)   return { label: 'Concluso', mod: 'muted' };
+  if (t.startDate > today) return { label: 'Prossimo', mod: 'amber' };
+  return                          { label: 'In corso', mod: 'teal'  };
+}
+
 // ── Palette compass (brand, non colori utente) ────────────
 const COMPASS_COLORS = ['#2fa7a0','#f47461','#d4a96a','#8b5cf6','#3b82f6','#10b981','#06b6d4','#ec4899'];
 
@@ -78,6 +88,7 @@ export const HomeScreen = {
       const total    = Selectors.tripTotalById(t.id);
       const nSpese   = Selectors.tripExpenseCountById(t.id);
       const typeInfo = tripTypeInfo(t.type ?? 'viaggio');
+      const status   = _tripStatus(t, nSpese);
       const stateClass = t.archivedAt ? 'trip-card--archived' : 'trip-card--active';
       return `
         <div class="card trip-card ${stateClass}" data-action="open-trip" data-trip-id="${t.id}">
@@ -88,9 +99,7 @@ export const HomeScreen = {
               <p class="trip-card__sub">${t.location}</p>
               <p class="trip-card__dates">${f(t.startDate)} – ${f(t.endDate)}</p>
             </div>
-            <span class="badge ${t.archivedAt ? 'badge--gray' : 'badge--teal'}">
-              ${Selectors.formatCurrency(total, t.currency)}
-            </span>
+            <span class="trip-status trip-status--${status.mod}">${status.label}</span>
           </div>
           <div class="trip-card__footer">
             <span class="trip-card__meta">
