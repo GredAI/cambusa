@@ -3843,3 +3843,33 @@ html[data-theme="dark"] .home-orbit__svg circle:first-child {
   fill: #2fa7a0;
   opacity: 0.05;
 }
+
+/* =====================================================
+   ANIMAZIONI — FAB ring + nav arc + compass
+   ===================================================== */
+
+/* FAB: ring ruota al tap */
+.fab-ring {
+  transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fab-main:active .fab-ring {
+  transform: rotate(72deg);
+}
+
+/* Nav arc: entra con scale da centro */
+.nav-arc {
+  animation: nav-arc-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  transform-origin: center;
+}
+@keyframes nav-arc-in {
+  from { opacity: 0; transform: translateX(-50%) scaleX(0.2); }
+  to   { opacity: 1; transform: translateX(-50%) scaleX(1); }
+}
+
+/* Compass: micro hover lift */
+.compass-split {
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+.trip-card:active .compass-split {
+  transform: scale(0.94);
+}

@@ -24,6 +24,23 @@ function _compassSplit(trip, total) {
     ? `${(total / 100000).toFixed(1)}k`
     : (total / 100).toFixed(0);
 
+  // Nessuna spesa ancora: segmenti neutri + trattino centrale
+  if (total === 0) {
+    const muteArcs = trip.participants.map((_, i) => {
+      const off = circ / 4 - i * (seg + gap);
+      return `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
+        stroke="var(--color-border)" stroke-width="${SW}"
+        stroke-dasharray="${seg.toFixed(2)} ${(circ - seg).toFixed(2)}"
+        stroke-dashoffset="${(-off).toFixed(2)}"/>`;
+    }).join('');
+    return `
+      <svg class="compass-split" viewBox="0 0 80 80" width="64" height="64" style="flex-shrink:0">
+        ${muteArcs}
+        <text x="${CX}" y="${CY + 5}" text-anchor="middle"
+              font-size="14" fill="var(--color-text-muted)" font-family="Sora,sans-serif">—</text>
+      </svg>`;
+  }
+
   const arcs = trip.participants.map((_, i) => {
     const off = circ / 4 - i * (seg + gap);
     return `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
