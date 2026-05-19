@@ -131,6 +131,16 @@ export const TripScreen = {
             }).join('') : `<p class="empty-state__text">Nessuna spesa ancora.</p>`}
           </div>
 
+          <div class="card chart-entry-card">
+            <div class="section-header">
+              <h3 class="section-title">Grafici</h3>
+              <button class="btn-link" data-go="charts">Apri →</button>
+            </div>
+            <p class="empty-state__text" style="font-size:13px;padding:4px 0 2px">
+              Categorie, persone, andamento spese
+            </p>
+          </div>
+
           <div class="card">
             <div class="section-header">
               <h3 class="section-title">Spese ricorrenti</h3>

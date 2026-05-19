@@ -21,6 +21,7 @@ import { SettingsScreen }    from './screens/settings.js';
 import { OnboardingScreen }    from './screens/onboarding.js';
 import { ReceiptScannerScreen }   from './screens/receiptScanner.js';
 import { RecurringManagerScreen } from './screens/recurringManager.js';
+import { ChartsScreen }           from './screens/charts.js';
 
 // ── Registra le schermate ─────────────────────────────────
 Router._screens = {
@@ -34,6 +35,7 @@ Router._screens = {
   'onboarding':       OnboardingScreen,
   'receipt-scanner':   ReceiptScannerScreen,
   'recurring-manager': RecurringManagerScreen,
+  'charts':            ChartsScreen,
 };
 
 // ── Service Worker ────────────────────────────────────────

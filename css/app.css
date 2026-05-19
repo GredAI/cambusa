@@ -3606,3 +3606,120 @@ html[data-theme="dark"] .trip-card__arc text {
 html[data-theme="dark"] .home-hero {
   background: linear-gradient(150deg, #0e1e26 0%, #192830 60%, #0f2a30 100%);
 }
+
+/* =====================================================
+   CHARTS SCREEN
+   ===================================================== */
+
+/* Card wrapper */
+.chart-card {
+  padding: 20px 16px 16px;
+}
+.chart-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 16px;
+}
+.chart-empty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  padding: 8px 0;
+  margin: 0;
+}
+.chart-axis-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: 6px 0 0;
+}
+
+/* Donut */
+.donut-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.donut-legend {
+  flex: 1;
+  min-width: 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+}
+.donut-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text);
+}
+.donut-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.donut-legend-label {
+  flex: 1;
+  color: var(--color-text-sub);
+}
+.donut-legend-pct {
+  font-weight: 600;
+  color: var(--color-text);
+  min-width: 28px;
+  text-align: right;
+}
+.donut-legend-amt {
+  color: var(--color-text-muted);
+  min-width: 60px;
+  text-align: right;
+}
+
+/* Person bars */
+.pbar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pbar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pbar-name {
+  font-size: 12px;
+  color: var(--color-text-sub);
+  min-width: 56px;
+  text-align: right;
+}
+.pbar-track {
+  flex: 1;
+  height: 10px;
+  background: var(--color-border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.pbar-fill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width .3s ease;
+  min-width: 4px;
+}
+.pbar-amt {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  min-width: 72px;
+  text-align: right;
+}
+
+/* Donut arc hover */
+.donut-arc {
+  cursor: default;
+  transition: opacity .15s;
+}
+.donut-arc:hover {
+  opacity: .8;
+}
