@@ -477,8 +477,19 @@ function _renderPItem(p) {
 
         <label class="field-label">Avatar</label>
         <div class="avatar-picker">
+          <!-- Opzione "solo colore" — nessuna immagine né lettera -->
+          <button class="avatar-pick-btn avatar-pick-btn--blank ${p.avatarBlank ? 'avatar-pick-btn--active' : ''}"
+                  data-pid="${p.id}" data-avatarblank="true"
+                  style="background:${p.color ?? '#10b981'}"
+                  title="Solo colore">
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none"
+                 stroke="rgba(255,255,255,0.7)" stroke-width="1.5" stroke-linecap="round">
+              <circle cx="10" cy="10" r="7"/>
+              <line x1="6" y1="6" x2="14" y2="14"/>
+            </svg>
+          </button>
           ${Array.from({length: 47}, (_, i) => `
-            <button class="avatar-pick-btn ${p.avatarIndex === i ? 'avatar-pick-btn--active' : ''}"
+            <button class="avatar-pick-btn ${!p.avatarBlank && p.avatarIndex === i ? 'avatar-pick-btn--active' : ''}"
                     data-pid="${p.id}" data-avatarindex="${i}"
                     title="Avatar ${i}">
               <img src="./assets/avatars/av${String(i).padStart(2,'0')}.png"
@@ -549,13 +560,34 @@ function _bindParticipantEvents() {
       // Aggiorna swatch attivo
       document.querySelectorAll(`.p-item[data-pid="${pid}"] .color-swatch`)
         .forEach(b => b.classList.toggle('color-swatch--active', b.dataset.colorpick === color));
+      // Aggiorna colore del pulsante blank (mostra sempre il colore corrente)
+      const blankBtn = document.querySelector(`.p-item[data-pid="${pid}"] [data-avatarblank]`);
+      if (blankBtn) blankBtn.style.background = color;
       // Aggiorna avatar nell'intestazione
       const avatarEl = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
       if (avatarEl) updateAvatarEl(avatarEl, p);
     });
   });
 
-  // Avatar picker
+  // Avatar picker — opzione "blank" (solo colore)
+  document.querySelectorAll('[data-avatarblank]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const pid = e.currentTarget.dataset.pid;
+      const p   = _findP(pid);
+      if (!p) return;
+      p.avatarBlank = true;
+      p.avatarIndex = undefined;
+      _isDirty = true;
+      // Solo il blank button è attivo
+      document.querySelectorAll(`.p-item[data-pid="${pid}"] .avatar-pick-btn`)
+        .forEach(b => b.classList.toggle('avatar-pick-btn--active', !!b.dataset.avatarblank));
+      const avatarEl = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
+      if (avatarEl) updateAvatarEl(avatarEl, p);
+    });
+  });
+
+  // Avatar picker — immagini
   document.querySelectorAll('[data-avatarindex]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
@@ -564,9 +596,11 @@ function _bindParticipantEvents() {
       const p   = _findP(pid);
       if (!p) return;
       p.avatarIndex = idx;
+      p.avatarBlank = false;
       _isDirty = true;
       document.querySelectorAll(`.p-item[data-pid="${pid}"] .avatar-pick-btn`)
-        .forEach(b => b.classList.toggle('avatar-pick-btn--active', Number(b.dataset.avatarindex) === idx));
+        .forEach(b => b.classList.toggle('avatar-pick-btn--active',
+          !b.dataset.avatarblank && Number(b.dataset.avatarindex) === idx));
       const avatarEl = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
       if (avatarEl) updateAvatarEl(avatarEl, p);
     });

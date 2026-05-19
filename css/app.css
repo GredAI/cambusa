@@ -2271,6 +2271,15 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-bg);
 }
+/* Pulsante "solo colore" — cerchio pieno con X tratteggiata */
+.avatar-pick-btn--blank {
+  display: flex; align-items: center; justify-content: center;
+  border: 2.5px dashed rgba(255,255,255,0.5);
+}
+.avatar-pick-btn--blank.avatar-pick-btn--active {
+  border-style: solid;
+  border-color: var(--color-primary);
+}
 
 /* ── Gruppi di partecipanti (trip form) ─────────────── */
 .add-group-row {

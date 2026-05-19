@@ -31,8 +31,14 @@ export function participantAvatar(participant, modifier = '') {
   const name    = participant?.name  ?? '?';
   const color   = participant?.color ?? '#10b981';
   const idx     = participant?.avatarIndex;
+  const blank   = participant?.avatarBlank === true;
   const initial = name.charAt(0).toUpperCase();
   const cls     = ['avatar', modifier].filter(Boolean).join(' ');
+
+  // Solo colore — nessuna lettera né immagine
+  if (blank) {
+    return `<div class="${cls}" style="background:${color}"></div>`;
+  }
 
   if (idx !== null && idx !== undefined) {
     // Avatar locale — sfondo = colore del partecipante (visibile sulla trasparenza del PNG)
@@ -56,19 +62,26 @@ export function updateAvatarEl(el, participant) {
   const name    = participant?.name  ?? '?';
   const color   = participant?.color ?? '#10b981';
   const idx     = participant?.avatarIndex;
+  const blank   = participant?.avatarBlank === true;
   const initial = name.charAt(0).toUpperCase();
+
+  el.style.background = color;
+  const img = el.querySelector('.avatar__img');
+
+  if (blank) {
+    // Solo colore — rimuovi lettera e immagine
+    delete el.dataset.avatarName;
+    if (img) img.style.display = 'none';
+    return;
+  }
 
   el.dataset.avatarName = initial;
 
-  const img = el.querySelector('.avatar__img');
-
   if (idx !== null && idx !== undefined) {
-    el.style.background = color; // colore partecipante come sfondo del PNG trasparente
     if (img) {
-      img.src   = avatarUrl(idx);
+      img.src           = avatarUrl(idx);
       img.style.display = '';
     } else {
-      // Crea img se non esiste
       const newImg = document.createElement('img');
       newImg.src       = avatarUrl(idx);
       newImg.alt       = initial;
@@ -78,7 +91,6 @@ export function updateAvatarEl(el, participant) {
       el.appendChild(newImg);
     }
   } else {
-    el.style.background = color;
     if (img) img.style.display = 'none';
   }
 }
