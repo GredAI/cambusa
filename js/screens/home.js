@@ -62,40 +62,6 @@ function _compassSplit(trip, total) {
     </svg>`;
 }
 
-// ── Hero Orbit SVG ────────────────────────────────────────
-function _heroOrbit(participants) {
-  if (!participants.length) return '';
-  const MAX  = 18;
-  const shown = participants.slice(0, MAX);
-  const n    = shown.length;
-  const CX   = 70, CY = 70, R = 52;
-
-  const dots = shown.map((p, i) => {
-    const a  = (i / n) * 2 * Math.PI - Math.PI / 2;
-    const x  = (CX + R * Math.cos(a)).toFixed(1);
-    const y  = (CY + R * Math.sin(a)).toFixed(1);
-    const ty = (CY + R * Math.sin(a) + 4).toFixed(1);
-    return `
-      <circle cx="${x}" cy="${y}" r="8" fill="${p.color ?? '#2fa7a0'}"/>
-      <text x="${x}" y="${ty}" text-anchor="middle"
-            font-size="8" font-weight="700" fill="white"
-            font-family="Sora,sans-serif">${p.name.charAt(0).toUpperCase()}</text>`;
-  }).join('');
-
-  return `
-    <div class="home-orbit">
-      <svg class="home-orbit__svg" viewBox="0 0 140 140" width="140" height="140">
-        <circle cx="${CX}" cy="${CY}" r="28" fill="#2fa7a0" opacity="0.07"/>
-        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
-                stroke="rgba(47,167,160,0.18)" stroke-width="1" stroke-dasharray="3 7"/>
-        ${dots}
-        <circle cx="${CX}" cy="${CY}" r="20" fill="#1d3844"/>
-        <text x="${CX}" y="${CY + 7}" text-anchor="middle"
-              font-size="19" font-weight="800" fill="#2fa7a0"
-              font-family="Sora,sans-serif">C</text>
-      </svg>
-    </div>`;
-}
 
 export const HomeScreen = {
 
@@ -105,14 +71,7 @@ export const HomeScreen = {
     const archived = trips.filter(t =>  t.archivedAt);
     const f = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
-    // Stats orbita
-    const nArchived  = archived.length;
-    const totalSpeso = active.reduce((s, t) => s + Selectors.tripTotalById(t.id), 0);
-    const heroCur    = active[0]?.currency ?? '€';
-    // Partecipanti unici da tutti i viaggi attivi
-    const partMap = new Map();
-    active.forEach(t => t.participants.forEach(p => partMap.set(p.id, p)));
-    const heroParticipants = [...partMap.values()];
+    const nArchived = archived.length;
 
     // ── Trip card ──────────────────────────────────────────
     const tripCard = t => {
@@ -165,21 +124,6 @@ export const HomeScreen = {
         </div>
       </details>` : '';
 
-    // ── Orbit stats line ──────────────────────────────────
-    const orbitStats = active.length ? `
-      <div class="home-orbit__stats">
-        <span class="home-orbit__stat">
-          ${active.length} ${active.length === 1 ? 'equipaggio attivo' : 'equipaggi attivi'}
-        </span>
-        ${totalSpeso > 0 ? `
-        <span class="home-orbit__sep">·</span>
-        <span class="home-orbit__stat">
-          ${heroCur}&nbsp;${(totalSpeso / 100).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} in movimento
-        </span>` : ''}
-        ${nArchived ? `
-        <span class="home-orbit__sep">·</span>
-        <span class="home-orbit__stat">${nArchived} archiviati</span>` : ''}
-      </div>` : '';
 
     return `
       <div class="screen" id="screen-home">
@@ -203,13 +147,6 @@ export const HomeScreen = {
 
         <main class="screen-content">
 
-          <!-- Orbit scene (scorre con il contenuto) -->
-          ${heroParticipants.length ? `
-          <div class="home-orbit-section">
-            ${_heroOrbit(heroParticipants)}
-            ${orbitStats}
-          </div>` : ''}
-
           ${activeSection}
           ${archivedSection}
 
@@ -227,20 +164,6 @@ export const HomeScreen = {
   },
 
   mount() {
-    // Animazione orbita — fade+scale in al load, una volta sola
-    requestAnimationFrame(() => {
-      document.querySelector('.home-orbit__svg')?.classList.add('is-loaded');
-    });
-
-    // Tap sull'orbita → pulse
-    document.querySelector('.home-orbit')?.addEventListener('click', () => {
-      const svg = document.querySelector('.home-orbit__svg');
-      if (!svg) return;
-      svg.classList.remove('is-tapped');
-      requestAnimationFrame(() => svg.classList.add('is-tapped'));
-      setTimeout(() => svg.classList.remove('is-tapped'), 500);
-    });
-
     // Import JSON
     document.getElementById('input-import-json')
       ?.addEventListener('change', async e => {
