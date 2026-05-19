@@ -21,16 +21,17 @@ import {
   isDue,
   dueDateLabel,
 } from '../domain/recurrence.js';
+import { catIcon } from '../components/catIcon.js';
 
 const CAT_OPTIONS = [
-  { id: 'alloggio',  icon: '🏠', label: 'Alloggio'   },
-  { id: 'trasporti', icon: '🚗', label: 'Trasporti'  },
-  { id: 'cibo',      icon: '🍝', label: 'Cibo'       },
-  { id: 'spesa',     icon: '🛒', label: 'Spesa'      },
-  { id: 'servizi',   icon: '🔧', label: 'Servizi'    },
-  { id: 'attivita',  icon: '🎭', label: 'Attività'   },
-  { id: 'noleggi',   icon: '⛵', label: 'Noleggi'    },
-  { id: 'altro',     icon: '📋', label: 'Altro'      },
+  { id: 'alloggio',  label: 'Alloggio'   },
+  { id: 'trasporti', label: 'Trasporti'  },
+  { id: 'cibo',      label: 'Cibo'       },
+  { id: 'spesa',     label: 'Spesa'      },
+  { id: 'servizi',   label: 'Servizi'    },
+  { id: 'attivita',  label: 'Attività'   },
+  { id: 'noleggi',   label: 'Noleggi'    },
+  { id: 'altro',     label: 'Altro'      },
 ];
 
 // ── Stato modulo ──────────────────────────────────────
@@ -110,7 +111,7 @@ function _renderForm(trip) {
 
   const catChips = CAT_OPTIONS.map(c => `
     <button class="filter-chip ${f.category === c.id ? 'filter-chip--active' : ''}"
-            data-rm-cat="${c.id}">${c.icon} ${c.label}</button>`).join('');
+            data-rm-cat="${c.id}">${catIcon(c.id, 16)} ${c.label}</button>`).join('');
 
   const recChips = RECURRENCE_OPTIONS.map(r => `
     <button class="filter-chip ${f.recurrence === r.id ? 'filter-chip--active' : ''}"

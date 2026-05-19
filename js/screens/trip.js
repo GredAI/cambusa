@@ -8,11 +8,7 @@ import { isGroupExpense, readAmount, readPayers } from '../domain/guards.js';
 import { participantAvatar } from '../components/avatar.js';
 import { tripTypeInfo } from '../domain/tripType.js';
 import { pendingTemplates } from '../domain/recurrence.js';
-
-const CAT_ICON = {
-  alloggio: '🏠', trasporti: '🚗', noleggi: '⛵',
-  cibo: '🍝', spesa: '🛒', attivita: '🎭', servizi: '🔧', altro: '📋',
-};
+import { catIcon } from '../components/catIcon.js';
 
 export const TripScreen = {
 
@@ -94,7 +90,7 @@ export const TripScreen = {
               const pct = Math.round(amt / maxCat * 100);
               return `
                 <div class="cat-bar-row">
-                  <span class="cat-bar-icon">${CAT_ICON[cat] ?? '📋'}</span>
+                  <span class="cat-bar-icon">${catIcon(cat, 18)}</span>
                   <div class="cat-bar-body">
                     <div class="cat-bar-label">
                       <span>${cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
@@ -121,7 +117,7 @@ export const TripScreen = {
               return `
                 <div class="expense-item expense-item--tap"
                      data-edit-expense="${e.id}">
-                  <div class="expense-item__icon cat-${e.category}">${CAT_ICON[e.category] || '📋'}</div>
+                  <div class="expense-item__icon cat-${e.category}">${catIcon(e.category, 18)}</div>
                   <div class="expense-item__body">
                     <strong>${e.title}</strong>
                     <p>Pagato da ${payerNames || '—'}</p>

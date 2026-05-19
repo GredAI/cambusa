@@ -14,16 +14,17 @@
 import { Selectors }  from '../selectors.js';
 import { readAmount, readConsumers, readPayers } from '../domain/guards.js';
 import { participantAvatar } from './avatar.js';
+import { catIcon } from './catIcon.js';
 
 export const CAT_CONFIG = {
-  cibo:      { icon: '🍝', label: 'Cibo'      },
-  spesa:     { icon: '🛒', label: 'Spesa'     },
-  trasporti: { icon: '🚕', label: 'Trasporti' },
-  alloggio:  { icon: '🏠', label: 'Alloggio'  },
-  attivita:  { icon: '🏖', label: 'Attività'  },
-  noleggi:   { icon: '⛵', label: 'Noleggi'   },
-  servizi:   { icon: '🔧', label: 'Servizi'   },
-  altro:     { icon: '📦', label: 'Altro'     },
+  cibo:      { label: 'Cibo'      },
+  spesa:     { label: 'Spesa'     },
+  trasporti: { label: 'Trasporti' },
+  alloggio:  { label: 'Alloggio'  },
+  attivita:  { label: 'Attività'  },
+  noleggi:   { label: 'Noleggi'   },
+  servizi:   { label: 'Servizi'   },
+  altro:     { label: 'Altro'     },
 };
 
 /**
@@ -109,7 +110,7 @@ export function ExpenseCard(expense, trip, opts = {}) {
     <div class="expense-card ${isOpen ? 'expense-card--open' : ''}"
          data-expense-id="${expense.id}">
       <div class="expense-card__main">
-        <div class="expense-card__icon cat-${expense.category}">${cat.icon}</div>
+        <div class="expense-card__icon cat-${expense.category}">${catIcon(expense.category, 20)}</div>
         <div class="expense-card__body">
           <strong class="expense-card__title">${expense.title}</strong>
           <p class="expense-card__meta">${metaHtml}</p>

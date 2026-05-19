@@ -19,6 +19,7 @@ import { Toast }     from '../toast.js';
 import { Share }     from '../ui/share.js';
 import { participantAvatar } from '../components/avatar.js';
 import { isGroupExpense, readAmount, readPayers } from '../domain/guards.js';
+import { catIcon } from '../components/catIcon.js';
 
 export const BalancesScreen = {
 
@@ -458,8 +459,6 @@ function _openParticipantSheet(participantId, trip) {
       ? `Creditore di ${fmt(Math.abs(balance))}`
       : `Debitore di ${fmt(Math.abs(balance))}`;
 
-  const CAT_ICON = { alloggio:'🏠', trasporti:'🚗', noleggi:'⛵', cibo:'🍝', spesa:'🛒', attivita:'🎭', servizi:'🔧', altro:'📋' };
-
   const expRows = (list, role) => list.length
     ? list.map(e => {
         let myAmt = 0;
@@ -474,7 +473,7 @@ function _openParticipantSheet(participantId, trip) {
         }
         return `
           <div class="sheet-exp-row">
-            <span class="sheet-exp-icon">${CAT_ICON[e.category] ?? '📋'}</span>
+            <span class="sheet-exp-icon">${catIcon(e.category, 18)}</span>
             <div class="sheet-exp-body">
               <span class="sheet-exp-title">${e.title}</span>
               <span class="sheet-exp-date">${e.date}</span>
@@ -576,10 +575,6 @@ function _buildStaticHTML(trip) {
     .toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
   const pName = (id) => trip.participants.find(p => p.id === id)?.name ?? '?';
 
-  const CAT_ICON = {
-    alloggio:'🏠', trasporti:'🚗', noleggi:'⛵', cibo:'🍝',
-    spesa:'🛒', attivita:'🎭', servizi:'🔧', altro:'📋',
-  };
 
   // Spese raggruppate per data
   const byDate = {};
@@ -594,7 +589,7 @@ function _buildStaticHTML(trip) {
       const payerNames = readPayers(e)
         .map(p => pName(p.participantId)).join(', ');
       return `<tr>
-        <td>${CAT_ICON[e.category] ?? '📋'} ${e.title}</td>
+        <td>${catIcon(e.category, 14)} ${e.title}</td>
         <td>${payerNames}</td>
         <td class="amt">${fmt(readAmount(e))}</td>
       </tr>`;

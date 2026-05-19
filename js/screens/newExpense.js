@@ -29,16 +29,17 @@ import { participantAvatar } from '../components/avatar.js';
 import { OCR }        from '../ocr.js';
 import { parseReceipt } from '../domain/ocrParser.js';
 import { maybeAutoBackup } from '../autoBackup.js';
+import { catIcon } from '../components/catIcon.js';
 
 const CATEGORIES = [
-  { id: 'cibo',      icon: '🍝', label: 'Cibo'      },
-  { id: 'spesa',     icon: '🛒', label: 'Spesa'     },
-  { id: 'trasporti', icon: '🚕', label: 'Trasporti' },
-  { id: 'alloggio',  icon: '🏠', label: 'Alloggio'  },
-  { id: 'attivita',  icon: '🏖', label: 'Attività'  },
-  { id: 'noleggi',   icon: '⛵', label: 'Noleggi'   },
-  { id: 'servizi',   icon: '🔧', label: 'Servizi'   },
-  { id: 'altro',     icon: '📦', label: 'Altro'     },
+  { id: 'cibo',      label: 'Cibo'      },
+  { id: 'spesa',     label: 'Spesa'     },
+  { id: 'trasporti', label: 'Trasporti' },
+  { id: 'alloggio',  label: 'Alloggio'  },
+  { id: 'attivita',  label: 'Attività'  },
+  { id: 'noleggi',   label: 'Noleggi'   },
+  { id: 'servizi',   label: 'Servizi'   },
+  { id: 'altro',     label: 'Altro'     },
 ];
 
 // ── Stato modulo ──────────────────────────────────────
@@ -136,7 +137,7 @@ export const NewExpenseScreen = {
               ${CATEGORIES.map(c => `
                 <button class="category-chip ${_form.category === c.id ? 'category-chip--active' : ''}"
                         data-cat="${c.id}">
-                  <span>${c.icon}</span>
+                  <span class="cat-chip-icon">${catIcon(c.id, 22)}</span>
                   <span>${c.label}</span>
                 </button>`).join('')}
             </div>
@@ -1489,7 +1490,7 @@ function _showOCRResult(parsed, trip) {
           </div>` : ''}
         <div class="ocr-row">
           <span class="ocr-label">Categoria</span>
-          <span class="ocr-value">${catObj?.icon ?? '📋'} ${catObj?.label ?? parsed.category}</span>
+          <span class="ocr-value">${catIcon(catObj?.id ?? parsed.category ?? 'altro', 16)} ${catObj?.label ?? parsed.category}</span>
         </div>
         ${!parsed.amount && !parsed.title
           ? `<p class="ocr-warning">⚠ Nessun dato riconosciuto. Controlla l'immagine.</p>`
