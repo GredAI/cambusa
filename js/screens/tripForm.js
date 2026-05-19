@@ -93,7 +93,7 @@ export const TripFormScreen = {
 
           <!-- Nome + luogo -->
           <div class="card">
-            <label class="field-label">Nome ${typeInfo.label} *</label>
+            <label class="field-label" id="f-name-label">Nome ${typeInfo.label} *</label>
             <input id="f-name" class="input" type="text"
                    placeholder="es. ${typeInfo.icon} ${typeInfo.label} 2026" value="${_h(_draft.name)}" />
             <label class="field-label">Luogo</label>
@@ -221,8 +221,10 @@ export const TripFormScreen = {
       const info = tripTypeInfo(_draft.type);
       const titleEl = document.querySelector('#screen-trip-form .topbar__title');
       if (titleEl) titleEl.textContent = _mode === 'edit' ? `Modifica ${info.label}` : `Nuovo ${info.label}`;
-      const nameLabelEl = document.querySelector('#screen-trip-form .field-label');
+      const nameLabelEl = document.getElementById('f-name-label');
       if (nameLabelEl) nameLabelEl.textContent = `Nome ${info.label} *`;
+      const nameInput = document.getElementById('f-name');
+      if (nameInput && !nameInput.value) nameInput.placeholder = `es. ${info.icon} ${info.label} 2026`;
       const saveBtn = document.getElementById('btn-save');
       if (saveBtn && _mode !== 'edit') saveBtn.textContent = `Crea ${info.label}`;
       const delBtn = document.getElementById('btn-delete-trip');
