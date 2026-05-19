@@ -7,34 +7,77 @@ import { Toast }     from '../toast.js';
 import { Modal }     from '../ui/modal.js';
 import { tripTypeInfo } from '../domain/tripType.js';
 
-// ── Micro-arc logomark (card widget) ─────────────────────
-function _microArc() {
+// ── Palette compass (brand, non colori utente) ────────────
+const COMPASS_COLORS = ['#2fa7a0','#f47461','#d4a96a','#8b5cf6','#3b82f6','#10b981','#06b6d4','#ec4899'];
+
+// ── Compass Split — donut per trip card ───────────────────
+function _compassSplit(trip, total) {
+  const n    = trip.participants.length || 1;
+  const CX   = 40, CY = 40, R = 27, SW = 9;
+  const circ = 2 * Math.PI * R;
+  const gap  = Math.min(3, circ / n / 4);
+  const seg  = (circ - n * gap) / n;
+  const cur  = trip.currency ?? '€';
+  const fmt  = total >= 1000000
+    ? `${(total / 100000).toFixed(0)}k`
+    : total >= 100000
+    ? `${(total / 100000).toFixed(1)}k`
+    : (total / 100).toFixed(0);
+
+  const arcs = trip.participants.map((_, i) => {
+    const off = circ / 4 - i * (seg + gap);
+    return `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
+      stroke="${COMPASS_COLORS[i % COMPASS_COLORS.length]}"
+      stroke-width="${SW}"
+      stroke-dasharray="${seg.toFixed(2)} ${(circ - seg).toFixed(2)}"
+      stroke-dashoffset="${(-off).toFixed(2)}"/>`;
+  }).join('');
+
   return `
-    <svg class="trip-card__arc" viewBox="0 0 100 100" width="48" height="48"
-         xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M 61.129 91.535 A 43 43 0 1 1 61.129 8.465 L 55.823 28.267 A 22.5 22.5 0 1 0 55.823 71.733 Z"
-            fill="#1D3844"/>
-      <path d="M 85.224 74.664 A 43 43 0 0 1 61.129 91.535 L 55.823 71.733 A 22.5 22.5 0 0 0 68.431 62.905 Z"
-            fill="#2FA7A0"/>
-      <path d="M 61.129 8.465 A 43 43 0 0 1 85.224 25.336 L 68.431 37.095 A 22.5 22.5 0 0 0 55.823 28.267 Z"
-            fill="#F47461"/>
-      <circle cx="73" cy="17" r="5" fill="#F47461"/>
+    <svg class="compass-split" viewBox="0 0 80 80" width="64" height="64" style="flex-shrink:0">
+      <circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
+              stroke="var(--color-border)" stroke-width="${SW}"/>
+      ${arcs}
+      <text x="${CX}" y="${CY - 4}" text-anchor="middle"
+            font-size="7" fill="var(--color-text-muted)" font-family="Sora,sans-serif">${cur}</text>
+      <text x="${CX}" y="${CY + 9}" text-anchor="middle"
+            font-size="11" font-weight="700" fill="var(--color-text)" font-family="Sora,sans-serif">${fmt}</text>
     </svg>`;
 }
 
-// ── Avatar pill (overlapping initials) ───────────────────
-function _avatarPill(participants) {
-  const shown = participants.slice(0, 5);
-  const extra = participants.length - shown.length;
-  const circles = shown.map((p, i) => `
-    <div class="trip-avatar" style="background:${p.color ?? '#2fa7a0'};
-         margin-left:${i === 0 ? '0' : '-7px'};z-index:${10 - i}">
-      ${p.name.charAt(0).toUpperCase()}
-    </div>`).join('');
-  const extraBadge = extra > 0
-    ? `<div class="trip-avatar trip-avatar--extra" style="margin-left:-7px">+${extra}</div>`
-    : '';
-  return `<div class="trip-card__avatars">${circles}${extraBadge}</div>`;
+// ── Hero Orbit SVG ────────────────────────────────────────
+function _heroOrbit(participants) {
+  if (!participants.length) return '';
+  const MAX  = 18;
+  const shown = participants.slice(0, MAX);
+  const n    = shown.length;
+  const CX   = 70, CY = 70, R = 52;
+
+  const dots = shown.map((p, i) => {
+    const a  = (i / n) * 2 * Math.PI - Math.PI / 2;
+    const x  = (CX + R * Math.cos(a)).toFixed(1);
+    const y  = (CY + R * Math.sin(a)).toFixed(1);
+    const ty = (CY + R * Math.sin(a) + 4).toFixed(1);
+    return `
+      <circle cx="${x}" cy="${y}" r="8" fill="${p.color ?? '#2fa7a0'}"/>
+      <text x="${x}" y="${ty}" text-anchor="middle"
+            font-size="8" font-weight="700" fill="white"
+            font-family="Sora,sans-serif">${p.name.charAt(0).toUpperCase()}</text>`;
+  }).join('');
+
+  return `
+    <div class="home-orbit">
+      <svg class="home-orbit__svg" viewBox="0 0 140 140" width="140" height="140">
+        <circle cx="${CX}" cy="${CY}" r="28" fill="#2fa7a0" opacity="0.07"/>
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none"
+                stroke="rgba(47,167,160,0.18)" stroke-width="1" stroke-dasharray="3 7"/>
+        ${dots}
+        <circle cx="${CX}" cy="${CY}" r="20" fill="#1d3844"/>
+        <text x="${CX}" y="${CY + 7}" text-anchor="middle"
+              font-size="19" font-weight="800" fill="#2fa7a0"
+              font-family="Sora,sans-serif">C</text>
+      </svg>
+    </div>`;
 }
 
 export const HomeScreen = {
@@ -45,13 +88,16 @@ export const HomeScreen = {
     const archived = trips.filter(t =>  t.archivedAt);
     const f = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
-    // Hero stats
-    const nArchived   = archived.length;
-    const totalSpeso  = active.reduce((s, t) => s + Selectors.tripTotalById(t.id), 0);
-    // Valuta prevalente (quella del primo viaggio attivo, o €)
-    const heroCur = active[0]?.currency ?? '€';
+    // Stats orbita
+    const nArchived  = archived.length;
+    const totalSpeso = active.reduce((s, t) => s + Selectors.tripTotalById(t.id), 0);
+    const heroCur    = active[0]?.currency ?? '€';
+    // Partecipanti unici da tutti i viaggi attivi
+    const partMap = new Map();
+    active.forEach(t => t.participants.forEach(p => partMap.set(p.id, p)));
+    const heroParticipants = [...partMap.values()];
 
-    // ── Trip card (enhanced) ───────────────────────────────
+    // ── Trip card ──────────────────────────────────────────
     const tripCard = t => {
       const total    = Selectors.tripTotalById(t.id);
       const nSpese   = Selectors.tripExpenseCountById(t.id);
@@ -60,7 +106,7 @@ export const HomeScreen = {
       return `
         <div class="card trip-card ${stateClass}" data-action="open-trip" data-trip-id="${t.id}">
           <div class="trip-card__header">
-            ${_microArc()}
+            ${_compassSplit(t, total)}
             <div class="trip-card__info">
               <h2 class="trip-card__name">${typeInfo.icon} ${t.name}</h2>
               <p class="trip-card__sub">${t.location}</p>
@@ -71,8 +117,10 @@ export const HomeScreen = {
             </span>
           </div>
           <div class="trip-card__footer">
-            ${_avatarPill(t.participants)}
-            <span class="trip-card__meta">${nSpese} ${nSpese === 1 ? 'spesa' : 'spese'}</span>
+            <span class="trip-card__meta">
+              ${t.participants.length} ${t.participants.length === 1 ? 'partecipante' : 'partecipanti'}
+              · ${nSpese} ${nSpese === 1 ? 'spesa' : 'spese'}
+            </span>
             <button class="trip-card__delete" data-action="delete-trip" data-trip-id="${t.id}"
                     aria-label="Elimina">🗑</button>
           </div>
@@ -100,10 +148,26 @@ export const HomeScreen = {
         </div>
       </details>` : '';
 
+    // ── Orbit stats line ──────────────────────────────────
+    const orbitStats = active.length ? `
+      <div class="home-orbit__stats">
+        <span class="home-orbit__stat">
+          ${active.length} ${active.length === 1 ? 'equipaggio attivo' : 'equipaggi attivi'}
+        </span>
+        ${totalSpeso > 0 ? `
+        <span class="home-orbit__sep">·</span>
+        <span class="home-orbit__stat">
+          ${heroCur}&nbsp;${(totalSpeso / 100).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })} in movimento
+        </span>` : ''}
+        ${nArchived ? `
+        <span class="home-orbit__sep">·</span>
+        <span class="home-orbit__stat">${nArchived} archiviati</span>` : ''}
+      </div>` : '';
+
     return `
       <div class="screen" id="screen-home">
 
-        <!-- Hero section -->
+        <!-- Hero: sticky compact topbar -->
         <header class="home-hero">
           <div class="home-hero__top">
             ${CambusaLogo({ size: '40px', onDark: true })}
@@ -118,27 +182,20 @@ export const HomeScreen = {
               </svg>
             </button>
           </div>
-
-          ${active.length ? `
-          <div class="home-hero__stats">
-            <div class="home-hero__stat">
-              <span class="home-hero__stat-value home-hero__stat-value--lg">
-                ${heroCur} ${(totalSpeso / 100).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
-              <span class="home-hero__stat-label">speso in eventi attivi</span>
-            </div>
-            ${nArchived ? `
-            <div class="home-hero__stat-sep"></div>
-            <div class="home-hero__stat">
-              <span class="home-hero__stat-value">${nArchived}</span>
-              <span class="home-hero__stat-label">${nArchived === 1 ? 'archiviato' : 'archiviati'}</span>
-            </div>` : ''}
-          </div>` : ''}
         </header>
 
         <main class="screen-content">
+
+          <!-- Orbit scene (scorre con il contenuto) -->
+          ${heroParticipants.length ? `
+          <div class="home-orbit-section">
+            ${_heroOrbit(heroParticipants)}
+            ${orbitStats}
+          </div>` : ''}
+
           ${activeSection}
           ${archivedSection}
+
           <div class="import-row">
             <label class="import-btn" title="Importa evento da file JSON">
               ⬆ Importa evento
@@ -146,12 +203,27 @@ export const HomeScreen = {
                      style="display:none" />
             </label>
           </div>
+
         </main>
         ${BottomNav('home')}
       </div>`;
   },
 
   mount() {
+    // Animazione orbita — fade+scale in al load, una volta sola
+    requestAnimationFrame(() => {
+      document.querySelector('.home-orbit__svg')?.classList.add('is-loaded');
+    });
+
+    // Tap sull'orbita → pulse
+    document.querySelector('.home-orbit')?.addEventListener('click', () => {
+      const svg = document.querySelector('.home-orbit__svg');
+      if (!svg) return;
+      svg.classList.remove('is-tapped');
+      requestAnimationFrame(() => svg.classList.add('is-tapped'));
+      setTimeout(() => svg.classList.remove('is-tapped'), 500);
+    });
+
     // Import JSON
     document.getElementById('input-import-json')
       ?.addEventListener('change', async e => {
@@ -170,7 +242,7 @@ export const HomeScreen = {
         } catch {
           Toast.show('Errore lettura file', { type: 'error' });
         }
-        e.target.value = '';  // reset input
+        e.target.value = '';
       });
 
     document.getElementById('screen-home')?.addEventListener('click', e => {
@@ -178,8 +250,8 @@ export const HomeScreen = {
       const delBtn = e.target.closest('[data-action="delete-trip"]');
       if (delBtn) {
         e.stopPropagation();
-        const tripId   = delBtn.dataset.tripId;
-        const trip     = State.trips.find(t => t.id === tripId);
+        const tripId    = delBtn.dataset.tripId;
+        const trip      = State.trips.find(t => t.id === tripId);
         const typeLabel = tripTypeInfo(trip?.type ?? 'viaggio').label;
         Modal.confirm({
           title:        `Elimina ${typeLabel}`,
@@ -210,10 +282,8 @@ export const HomeScreen = {
 
       // Bottom nav
       const btn = e.target.closest('[data-nav]');
-
       if (!btn) return;
       const target = btn.dataset.nav;
-
       if (target === 'new-expense' || target === 'expenses' || target === 'balances') {
         const trip = State.currentTrip ?? State.trips[0] ?? null;
         if (!trip) { Toast.show('Crea prima un evento', { type: 'info' }); return; }
@@ -221,7 +291,6 @@ export const HomeScreen = {
         Router.go(target, { tripId: trip.id });
         return;
       }
-
       Router.go(target);
     });
   },

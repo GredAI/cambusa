@@ -3758,3 +3758,88 @@ html[data-theme="dark"] .home-hero {
   font-size: 22px;
   letter-spacing: -0.5px;
 }
+
+/* =====================================================
+   HOME V2 — ORBIT + COMPASS SPLIT
+   ===================================================== */
+
+/* ── Compact sticky topbar (hero senza stats) ── */
+/* .home-hero già esistente: rimosso il blocco stats */
+/* Si lascia solo il __top row */
+
+/* ── Orbit section (scorre con il contenuto) ── */
+.home-orbit-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 8px;
+  margin-bottom: 4px;
+}
+
+.home-orbit {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Animazione load: parte invisibile, diventa visibile */
+.home-orbit__svg {
+  display: block;
+  opacity: 0;
+  transform: scale(0.86);
+  transition:
+    opacity  0.65s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.home-orbit__svg.is-loaded {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Pulse al tap */
+.home-orbit__svg.is-tapped {
+  animation: orbit-tap 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes orbit-tap {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Testo info sotto orbita */
+.home-orbit__stats {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 0 16px;
+}
+.home-orbit__stat {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.home-orbit__sep {
+  font-size: 12px;
+  color: var(--color-border);
+}
+
+/* ── Compass Split (trip card) ── */
+.compass-split {
+  display: block;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.08));
+}
+
+/* Footer card ripulito (no avatar pill) */
+.trip-card__footer .trip-card__meta {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Dark mode: glow centrale orbit */
+html[data-theme="dark"] .home-orbit__svg circle:first-child {
+  fill: #2fa7a0;
+  opacity: 0.05;
+}
