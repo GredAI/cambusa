@@ -24,7 +24,7 @@ export const TripScreen = {
       </div>`;
 
     const isArchived  = !!trip.archivedAt;
-    const typeInfo    = tripTypeInfo(trip.type ?? 'viaggio');
+    const typeInfo    = tripTypeInfo(trip);
     const total       = Selectors.tripTotal();
     const balances    = Selectors.balances();
     const groupExps   = Selectors.expensesSortedByDate().filter(isGroupExpense);
@@ -180,7 +180,7 @@ export const TripScreen = {
 
       const archive = e.target.closest('[data-action="archive-trip"]');
       if (archive) {
-        const archivedType = tripTypeInfo(State.currentTrip?.type ?? 'viaggio').label;
+        const archivedType = tripTypeInfo(State.currentTrip ?? {}).label;
         await Actions.archiveTrip(State.currentTrip.id);
         Toast.show(`${archivedType} archiviato`, { type: 'success' });
         Router.go('trip', { tripId: State.currentTrip.id });
@@ -189,7 +189,7 @@ export const TripScreen = {
 
       const unarchive = e.target.closest('[data-action="unarchive-trip"]');
       if (unarchive) {
-        const unarchivedType = tripTypeInfo(State.currentTrip?.type ?? 'viaggio').label;
+        const unarchivedType = tripTypeInfo(State.currentTrip ?? {}).label;
         await Actions.unarchiveTrip(State.currentTrip.id);
         Toast.show(`${unarchivedType} riattivato`);
         Router.go('trip', { tripId: State.currentTrip.id });

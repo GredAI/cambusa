@@ -87,7 +87,7 @@ export const HomeScreen = {
     const tripCard = t => {
       const total    = Selectors.tripTotalById(t.id);
       const nSpese   = Selectors.tripExpenseCountById(t.id);
-      const typeInfo = tripTypeInfo(t.type ?? 'viaggio');
+      const typeInfo = tripTypeInfo(t);
       const status   = _tripStatus(t, nSpese);
       const stateClass = t.archivedAt ? 'trip-card--archived' : 'trip-card--active';
       return `
@@ -201,7 +201,7 @@ export const HomeScreen = {
         e.stopPropagation();
         const tripId    = delBtn.dataset.tripId;
         const trip      = State.trips.find(t => t.id === tripId);
-        const typeLabel = tripTypeInfo(trip?.type ?? 'viaggio').label;
+        const typeLabel = tripTypeInfo(trip ?? {}).label;
         Modal.confirm({
           title:        `Elimina ${typeLabel}`,
           message:      `"${trip?.name ?? ''}" e tutte le sue spese verranno cancellati definitivamente.`,

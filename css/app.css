@@ -942,6 +942,26 @@ body {
 .cat-servizi   { background: var(--cat-servizi-bg);    color: var(--cat-servizi);   }
 .cat-altro     { background: var(--color-bg);          color: var(--color-text-sub);}
 
+/* ── Tipo personalizzato (tripForm) ───────────────────── */
+.custom-type-row {
+  display: none;
+  gap: 8px;
+  margin-top: 12px;
+  align-items: center;
+}
+.custom-type-row--open { display: flex; }
+.custom-type-emoji {
+  width: 56px; min-width: 56px;
+  text-align: center;
+  font-size: 22px;
+  padding: 8px 6px;
+  border-radius: 12px;
+}
+.custom-type-label {
+  flex: 1;
+  border-radius: 12px;
+}
+
 /* ── Filtri ───────────────────────────────────────────── */
 .filter-row {
   display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;

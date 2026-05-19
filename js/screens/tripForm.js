@@ -53,7 +53,7 @@ let _isDirty     = false;
 let _initialized = false;
 
 function _emptyDraft() {
-  return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', participants: [], groups: [], splitPresets: [] };
+  return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', customLabel: '', customIcon: '', participants: [], groups: [], splitPresets: [] };
 }
 
 function _cloneTrip(trip) {
@@ -64,6 +64,8 @@ function _cloneTrip(trip) {
     endDate:      trip.endDate,
     currency:     trip.currency,
     type:         trip.type ?? 'viaggio',
+    customLabel:  trip.customLabel ?? '',
+    customIcon:   trip.customIcon  ?? '',
     participants: trip.participants.map(p => ({ ...p })),
     groups:       (trip.groups ?? []).map(g => ({ ...g, members: [...(g.members ?? [])] })),
     splitPresets: (trip.splitPresets ?? []).map(sp => ({ ...sp, participantIds: [...(sp.participantIds ?? [])] })),
@@ -86,7 +88,7 @@ export const TripFormScreen = {
     }
 
     const isEdit  = _mode === 'edit';
-    const typeInfo = tripTypeInfo(_draft.type);
+    const typeInfo = tripTypeInfo(_draft);
 
     return `
       <div class="screen" id="screen-trip-form">
@@ -101,6 +103,21 @@ export const TripFormScreen = {
               ${TRIP_TYPES.map(t => `
                 <button class="filter-chip ${_draft.type === t.id ? 'filter-chip--active' : ''}"
                         data-type="${t.id}">${t.icon} ${t.label}</button>`).join('')}
+            </div>
+
+            <!-- Mini-form tipo personalizzato — visibile solo se type=custom -->
+            <div class="custom-type-row ${_draft.type === 'custom' ? 'custom-type-row--open' : ''}"
+                 id="custom-type-row">
+              <input id="f-custom-icon" class="input custom-type-emoji"
+                     type="text" maxlength="4"
+                     placeholder="✏️"
+                     value="${_h(_draft.customIcon)}"
+                     aria-label="Icona (emoji)" />
+              <input id="f-custom-label" class="input custom-type-label"
+                     type="text" maxlength="32"
+                     placeholder="Nome tipo evento"
+                     value="${_h(_draft.customLabel)}"
+                     aria-label="Nome tipo personalizzato" />
             </div>
           </div>
 
@@ -211,6 +228,21 @@ export const TripFormScreen = {
   mount() {
     _isDirty = false;
 
+    // Helper: sincronizza titolo, label nome, placeholder e pulsanti col tipo corrente
+    function _updateTypeLabels() {
+      const info = tripTypeInfo(_draft);
+      const titleEl = document.querySelector('#screen-trip-form .topbar__title');
+      if (titleEl) titleEl.textContent = _mode === 'edit' ? `Modifica ${info.label}` : `Nuovo ${info.label}`;
+      const nameLabelEl = document.getElementById('f-name-label');
+      if (nameLabelEl) nameLabelEl.textContent = `Nome ${info.label} *`;
+      const nameInput = document.getElementById('f-name');
+      if (nameInput && !nameInput.value) nameInput.placeholder = `es. ${info.icon} ${info.label} 2026`;
+      const saveBtn = document.getElementById('btn-save');
+      if (saveBtn && _mode !== 'edit') saveBtn.textContent = `Crea ${info.label}`;
+      const delBtn = document.getElementById('btn-delete-trip');
+      if (delBtn) delBtn.textContent = `🗑 Elimina ${info.label}`;
+    }
+
     // Back con dirty check
     document.querySelector('#screen-trip-form .btn-back')
       ?.addEventListener('click', _handleBack);
@@ -227,21 +259,29 @@ export const TripFormScreen = {
       if (!btn) return;
       _draft.type = btn.dataset.type;
       _isDirty = true;
+      // Mostra/nascondi riga custom
+      document.getElementById('custom-type-row')
+        ?.classList.toggle('custom-type-row--open', _draft.type === 'custom');
+      if (_draft.type === 'custom') {
+        setTimeout(() => document.getElementById('f-custom-icon')?.focus(), 50);
+      }
       // Aggiorna chip attivo
       document.querySelectorAll('[data-type]')
         .forEach(b => b.classList.toggle('filter-chip--active', b.dataset.type === _draft.type));
       // Aggiorna titolo topbar e label nome in tempo reale
-      const info = tripTypeInfo(_draft.type);
-      const titleEl = document.querySelector('#screen-trip-form .topbar__title');
-      if (titleEl) titleEl.textContent = _mode === 'edit' ? `Modifica ${info.label}` : `Nuovo ${info.label}`;
-      const nameLabelEl = document.getElementById('f-name-label');
-      if (nameLabelEl) nameLabelEl.textContent = `Nome ${info.label} *`;
-      const nameInput = document.getElementById('f-name');
-      if (nameInput && !nameInput.value) nameInput.placeholder = `es. ${info.icon} ${info.label} 2026`;
-      const saveBtn = document.getElementById('btn-save');
-      if (saveBtn && _mode !== 'edit') saveBtn.textContent = `Crea ${info.label}`;
-      const delBtn = document.getElementById('btn-delete-trip');
-      if (delBtn) delBtn.textContent = `🗑 Elimina ${info.label}`;
+      _updateTypeLabels();
+    });
+
+    // Campi tipo personalizzato
+    document.getElementById('f-custom-icon')?.addEventListener('input', e => {
+      _draft.customIcon = e.target.value;
+      _isDirty = true;
+      _updateTypeLabels();
+    });
+    document.getElementById('f-custom-label')?.addEventListener('input', e => {
+      _draft.customLabel = e.target.value;
+      _isDirty = true;
+      _updateTypeLabels();
     });
 
     // Valuta
@@ -308,7 +348,7 @@ export const TripFormScreen = {
     // Elimina viaggio (solo in edit mode)
     document.getElementById('btn-delete-trip')?.addEventListener('click', () => {
       const tripName = _original?.name ?? 'questo evento';
-      const typeLabel = tripTypeInfo(_draft.type).label;
+      const typeLabel = tripTypeInfo(_draft).label;
       Modal.confirm({
         title:        `Elimina ${typeLabel}`,
         message:      `Stai per eliminare "${tripName}" con tutte le sue spese e saldi. L'operazione non può essere annullata.`,
@@ -339,12 +379,14 @@ export const TripFormScreen = {
 // ── Salva ─────────────────────────────────────────────
 async function _handleSave() {
   // Leggi i campi al momento del salvataggio (sicuro)
-  _draft.name      = document.getElementById('f-name')?.value.trim()     ?? '';
-  _draft.location  = document.getElementById('f-location')?.value.trim() ?? '';
-  _draft.startDate = document.getElementById('f-start')?.value           ?? '';
-  _draft.endDate   = document.getElementById('f-end')?.value             ?? '';
+  _draft.name        = document.getElementById('f-name')?.value.trim()        ?? '';
+  _draft.location    = document.getElementById('f-location')?.value.trim()    ?? '';
+  _draft.startDate   = document.getElementById('f-start')?.value              ?? '';
+  _draft.endDate     = document.getElementById('f-end')?.value                ?? '';
+  _draft.customIcon  = document.getElementById('f-custom-icon')?.value.trim() ?? '';
+  _draft.customLabel = document.getElementById('f-custom-label')?.value.trim() ?? '';
 
-  if (!_draft.name)                      return Toast.show(`Inserisci il nome del ${tripTypeInfo(_draft.type).label.toLowerCase()}`, { type: 'error' });
+  if (!_draft.name)                      return Toast.show(`Inserisci il nome del ${tripTypeInfo(_draft).label.toLowerCase()}`, { type: 'error' });
   if (!_draft.startDate)                 return Toast.show('Seleziona la data di inizio',                 { type: 'error' });
   if (!_draft.endDate)                   return Toast.show('Seleziona la data di fine',                   { type: 'error' });
   if (_draft.endDate < _draft.startDate) return Toast.show('La data di fine deve essere dopo l\'inizio', { type: 'error' });
@@ -354,8 +396,10 @@ async function _handleSave() {
     const tripResult = await Actions.createTrip({
       name: _draft.name, location: _draft.location,
       startDate: _draft.startDate, endDate: _draft.endDate, currency: _draft.currency,
-      type: _draft.type,
-      groups: _draft.groups,
+      type:        _draft.type,
+      customLabel: _draft.customLabel,
+      customIcon:  _draft.customIcon,
+      groups:      _draft.groups,
     });
     if (!tripResult.ok) return Toast.show(tripResult.errors[0], { type: 'error' });
     const trip = tripResult.value;
@@ -387,7 +431,9 @@ async function _handleSave() {
     await Actions.updateTrip(tripId, {
       name: _draft.name, location: _draft.location,
       startDate: _draft.startDate, endDate: _draft.endDate, currency: _draft.currency,
-      type: _draft.type,
+      type:        _draft.type,
+      customLabel: _draft.customLabel,
+      customIcon:  _draft.customIcon,
       groups:       _draft.groups,
       splitPresets: _draft.splitPresets,
     });
