@@ -3249,6 +3249,48 @@ html[data-theme="dark"] .bottom-nav {
   margin-bottom: 4px;
 }
 
+/* ── Pannello riepilogo scansione (Phase 2) ───────────── */
+.rs-scan-summary {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  margin-top: 16px;
+  margin-bottom: 4px;
+}
+.rs-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--color-border-light);
+  color: var(--color-text-sub);
+}
+.rs-summary-row:last-child { border-bottom: none; }
+.rs-summary-row span  { font-weight: 400; }
+.rs-summary-row strong { font-weight: 600; color: var(--color-text); }
+
+/* Riga totale scontrino — colore leggermente diverso */
+.rs-summary-row--receipt {
+  background: var(--color-surface-alt);
+}
+.rs-summary-row--receipt strong { color: var(--color-text-sub); }
+
+/* Differenza — verde se ok, arancione se mancano voci */
+.rs-summary-row--ok {
+  background: color-mix(in srgb, var(--color-primary) 6%, var(--color-surface));
+}
+.rs-summary-row--ok strong {
+  color: var(--color-primary-dark);
+  font-size: 13px;
+}
+.rs-summary-row--diff {
+  background: #fff8ec;
+}
+.rs-summary-row--diff span   { color: #7a5a10; }
+.rs-summary-row--diff strong { color: #b07010; }
+
 /* Sommario nella quick-payer phase */
 .rs-quick-summary {
   font-size: 14px;

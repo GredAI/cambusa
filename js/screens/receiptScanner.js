@@ -119,23 +119,53 @@ function _renderItemsList() {
     </div>`).join('');
 }
 
-function _htmlItems() {
-  const total       = _totalCents();
+function _renderScanSummary() {
+  const itemSum     = _totalCents();
   const hasDetected = _detectedTotalCents !== null;
-  const mismatch    = hasDetected && Math.abs(total - _detectedTotalCents) > 2;
+  const diff        = hasDetected ? _detectedTotalCents - itemSum : 0;
+  const diffAbs     = Math.abs(diff);
+  const match       = diffAbs <= 2;
 
-  // Avviso discrepanza tra somma voci e totale scontrino
-  const mismatchBanner = mismatch ? `
-    <div class="rs-mismatch-banner">
-      ⚠️ La somma delle voci (${_fmtCur(total)}) differisce dal totale
-      rilevato sullo scontrino (${_fmtCur(_detectedTotalCents)}).
-      Controlla e correggi le voci prima di procedere.
-    </div>` : '';
+  // Riga differenza
+  let diffHtml = '';
+  if (hasDetected) {
+    if (match) {
+      diffHtml = `
+        <div class="rs-summary-row rs-summary-row--ok">
+          <span>Differenza</span>
+          <strong>✓ corrisponde</strong>
+        </div>`;
+    } else {
+      const sign  = diff > 0 ? '− ' : '+ ';   // diff>0 → mancano voci; diff<0 → voci in eccesso
+      const label = diff > 0 ? 'voci mancanti' : 'voci in eccesso';
+      diffHtml = `
+        <div class="rs-summary-row rs-summary-row--diff">
+          <span>${label}</span>
+          <strong>${sign}${_fmtCur(diffAbs)}</strong>
+        </div>`;
+    }
+  }
 
-  // Riga totale rilevato (solo info, non il badge somma)
-  const detectedRow = hasDetected ? `
-    <span class="rs-detected-total">Scontrino: ${_fmtCur(_detectedTotalCents)}</span>` : '';
+  return `
+    <div class="rs-scan-summary" id="rs-scan-summary">
+      <div class="rs-summary-row">
+        <span>Voci trovate</span>
+        <strong>${_items.length}</strong>
+      </div>
+      <div class="rs-summary-row">
+        <span>Somma voci</span>
+        <strong>${_fmtCur(itemSum)}</strong>
+      </div>
+      ${hasDetected ? `
+      <div class="rs-summary-row rs-summary-row--receipt">
+        <span>Totale scontrino</span>
+        <strong>${_fmtCur(_detectedTotalCents)}</strong>
+      </div>` : ''}
+      ${diffHtml}
+    </div>`;
+}
 
+function _htmlItems() {
   const canProceed = _items.length > 0;
   return `
     <div class="rs-phase" id="rs-phase-items">
@@ -147,13 +177,9 @@ function _htmlItems() {
       <div class="rs-section-label" style="margin-top:12px">Data</div>
       <input class="rs-field" id="rs-date-input" type="date" value="${_date}" />
 
-      <div class="rs-section-label" style="margin-top:20px">
-        Voci rilevate
-        <span class="rs-total-badge">${_fmtCur(total)}</span>
-        ${detectedRow}
-      </div>
+      ${_renderScanSummary()}
 
-      ${mismatchBanner}
+      <div class="rs-section-label" style="margin-top:16px">Voci</div>
 
       <div id="rs-items-list">
         ${_renderItemsList()}
@@ -315,22 +341,15 @@ function _rerenderAssign() {
 }
 
 function _rerenderItemsList() {
-  const list      = document.getElementById('rs-items-list');
-  const badge     = document.querySelector('.rs-total-badge');
-  const nextBtn   = document.getElementById('rs-items-next-btn');
-  const quickBtn  = document.getElementById('rs-quick-create-btn');
-  if (list)  list.innerHTML     = _renderItemsList();
-  if (badge) badge.textContent  = _fmtCur(_totalCents());
+  const list     = document.getElementById('rs-items-list');
+  const summary  = document.getElementById('rs-scan-summary');
+  const nextBtn  = document.getElementById('rs-items-next-btn');
+  const quickBtn = document.getElementById('rs-quick-create-btn');
+
+  if (list)    list.innerHTML    = _renderItemsList();
+  if (summary) summary.outerHTML = _renderScanSummary(); // aggiorna conteggio + diff in live
   if (nextBtn)  nextBtn.disabled  = _items.length === 0;
   if (quickBtn) quickBtn.disabled = _items.length === 0;
-
-  // Aggiorna/rimuovi banner discrepanza
-  const existing = document.querySelector('.rs-mismatch-banner');
-  const mismatch = _detectedTotalCents !== null &&
-                   Math.abs(_totalCents() - _detectedTotalCents) > 2;
-  if (existing) {
-    existing.style.display = mismatch ? '' : 'none';
-  }
 }
 
 // ── Pre-assegna tutti a tutti ─────────────────────────
@@ -583,8 +602,9 @@ function _onInput(e) {
     const item = _items.find(i => i.id === priceInput.dataset.itemPrice);
     if (item) {
       item.amountCents = Math.round(parseFloat(priceInput.value || 0) * 100);
-      const badge = document.querySelector('.rs-total-badge');
-      if (badge) badge.textContent = _fmtCur(_totalCents());
+      // Aggiorna il summary (somma + differenza) in live
+      const summary = document.getElementById('rs-scan-summary');
+      if (summary) summary.outerHTML = _renderScanSummary();
     }
     return;
   }
