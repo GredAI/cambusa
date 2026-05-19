@@ -20,7 +20,9 @@ import { Modal }       from '../ui/modal.js';
 import { Toast }       from '../toast.js';
 
 // ── Stato modulo ──────────────────────────────────────
-let _activeFilter  = 'all';
+let _activeFilter   = 'all';
+let _searchQuery    = '';
+let _searchVisible  = false;
 const _openBreakdowns = new Set();
 
 // ── Screen ────────────────────────────────────────────
@@ -41,6 +43,8 @@ export const ExpensesScreen = {
           back:     true,
           backNav:  'trip',
           right:    `<div class="expenses-topbar-right">
+                      <button class="expenses-search-btn${_searchVisible ? ' expenses-search-btn--active' : ''}"
+                              data-action="toggle-search" title="Cerca">🔍</button>
                       <button class="expenses-scan-btn" data-action="open-scanner" title="Scansiona scontrino">📷</button>
                       <span class="topbar__badge">${groupCount}</span>
                     </div>`,
@@ -48,6 +52,7 @@ export const ExpensesScreen = {
 
         <main class="screen-content">
           ${FilterChips(categories, _activeFilter)}
+          <div id="search-bar-container">${_renderSearchBar()}</div>
           <div id="expenses-list">
             ${_renderList()}
           </div>
@@ -58,12 +63,43 @@ export const ExpensesScreen = {
   },
 
   mount() {
+    // ── Input ricerca (delegato al document per sopravvivere ai re-render) ──
+    document.getElementById('screen-expenses')
+      ?.addEventListener('input', e => {
+        if (e.target.id !== 'search-input') return;
+        _searchQuery = e.target.value;
+        document.getElementById('expenses-list').innerHTML = _renderList();
+      });
+
+    document.getElementById('screen-expenses')
+      ?.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && _searchVisible) {
+          _searchVisible = false;
+          _searchQuery   = '';
+          document.getElementById('search-bar-container').innerHTML = _renderSearchBar();
+          document.getElementById('expenses-list').innerHTML = _renderList();
+          document.querySelector('.expenses-search-btn')?.classList.remove('expenses-search-btn--active');
+        }
+      });
+
     document.getElementById('screen-expenses')
       ?.addEventListener('click', async e => {
 
         // ── Back ─────────────────────────────────────
         if (e.target.closest('.btn-back')) {
           Router.go('trip', { tripId: State.currentTrip?.id });
+          return;
+        }
+
+        // ── Toggle ricerca ───────────────────────────
+        if (e.target.closest('[data-action="toggle-search"]')) {
+          _searchVisible = !_searchVisible;
+          if (!_searchVisible) _searchQuery = '';
+          document.getElementById('search-bar-container').innerHTML = _renderSearchBar();
+          document.getElementById('expenses-list').innerHTML = _renderList();
+          e.target.closest('[data-action="toggle-search"]')
+            ?.classList.toggle('expenses-search-btn--active', _searchVisible);
+          if (_searchVisible) setTimeout(() => document.getElementById('search-input')?.focus(), 50);
           return;
         }
 
@@ -150,26 +186,43 @@ export const ExpensesScreen = {
   },
 
   unmount() {
-    _activeFilter = 'all';
+    _activeFilter  = 'all';
+    _searchQuery   = '';
+    _searchVisible = false;
     _openBreakdowns.clear();
   },
 };
+
+// ── Render barra di ricerca ───────────────────────────
+function _renderSearchBar() {
+  if (!_searchVisible) return '';
+  return `
+    <div class="search-bar">
+      <input id="search-input" class="input search-input" type="search"
+             placeholder="Cerca per titolo, pagante, note…"
+             value="${(_searchQuery ?? '').replace(/"/g, '&quot;')}" />
+    </div>`;
+}
 
 // ── Render lista (partial) ────────────────────────────
 function _renderList() {
   const trip = State.currentTrip;
   if (!trip) return '';
 
-  const category = _activeFilter !== 'all' ? _activeFilter : null;
-  const groups   = Selectors.groupedExpenses(category);
+  const category  = _activeFilter !== 'all' ? _activeFilter : null;
+  let   groups    = Selectors.groupedExpenses(category);
+  const searching = _searchVisible && _searchQuery.trim().length > 0;
+
+  if (searching) groups = _filterBySearch(groups, _searchQuery.trim());
 
   if (!groups.length) {
+    const msg = searching
+      ? `Nessun risultato per "<strong>${_esc(_searchQuery)}</strong>"`
+      : category ? 'Nessuna spesa in questa categoria.' : 'Nessuna spesa ancora.';
     return `
       <div class="empty-state" style="padding:3rem 1rem">
         <p class="empty-state__icon">🧾</p>
-        <p class="empty-state__text">
-          ${category ? 'Nessuna spesa in questa categoria.' : 'Nessuna spesa ancora.'}
-        </p>
+        <p class="empty-state__text">${msg}</p>
       </div>`;
   }
 
@@ -177,9 +230,33 @@ function _renderList() {
     deletable: true,
     breakdown: _openBreakdowns.has(e.id),
   }))).join('');
-  const totalsHtml = category ? '' : _renderCategoryTotals();
+  // Nascondi i totali categoria durante la ricerca
+  const totalsHtml = (category || searching) ? '' : _renderCategoryTotals();
 
   return groupsHtml + totalsHtml;
+}
+
+// ── Filtra gruppi per query testuale ──────────────────
+function _filterBySearch(groups, query) {
+  const q    = query.toLowerCase();
+  const pMap = new Map(
+    (State.currentTrip?.participants ?? []).map(p => [p.id, p.name.toLowerCase()])
+  );
+  return groups
+    .map(g => ({
+      ...g,
+      expenses: g.expenses.filter(e =>
+        e.title.toLowerCase().includes(q) ||
+        (e.notes  ?? '').toLowerCase().includes(q) ||
+        (e.category ?? '').toLowerCase().includes(q) ||
+        (e.payers ?? []).some(p => (pMap.get(p.participantId) ?? '').includes(q))
+      ),
+    }))
+    .filter(g => g.expenses.length > 0);
+}
+
+function _esc(str) {
+  return (str ?? '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 // ── Totali per categoria ──────────────────────────────
