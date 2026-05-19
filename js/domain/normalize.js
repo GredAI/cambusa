@@ -97,6 +97,7 @@ export function normalizeTrip(input) {
     startDate:    input.startDate  ?? '',
     endDate:      input.endDate    ?? '',
     currency:     input.currency   ?? '€',
+    type:         input.type       ?? 'viaggio',
     participants: input.participants ?? [],
     groups:       input.groups       ?? [],
     createdAt:    input.createdAt  ?? now(),

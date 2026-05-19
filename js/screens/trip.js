@@ -6,6 +6,7 @@ import { Topbar, BottomNav } from '../ui.js';
 import { Toast }     from '../toast.js';
 import { isGroupExpense, readAmount, readPayers } from '../domain/guards.js';
 import { participantAvatar } from '../components/avatar.js';
+import { tripTypeInfo } from '../domain/tripType.js';
 
 const CAT_ICON = {
   alloggio: '🏠', trasporti: '🚗', noleggi: '⛵',
@@ -26,6 +27,7 @@ export const TripScreen = {
       </div>`;
 
     const isArchived  = !!trip.archivedAt;
+    const typeInfo    = tripTypeInfo(trip.type ?? 'viaggio');
     const total       = Selectors.tripTotal();
     const balances    = Selectors.balances();
     const groupExps   = Selectors.expensesSortedByDate().filter(isGroupExpense);
@@ -57,11 +59,11 @@ export const TripScreen = {
 
           ${isArchived ? `
             <div class="archive-banner">
-              🗄 Viaggio archiviato
+              🗄 ${typeInfo.label} archiviato
             </div>` : ''}
 
           <div class="card total-card">
-            <p class="total-card__label">Totale viaggio</p>
+            <p class="total-card__label">Totale ${typeInfo.label}</p>
             <h2 class="total-card__amount">${Selectors.formatCurrency(total)}</h2>
             <p class="total-card__meta">${groupExps.length} ${groupExps.length === 1 ? 'spesa' : 'spese'} · ${trip.participants.length} partecipanti</p>
           </div>
@@ -129,7 +131,7 @@ export const TripScreen = {
 
           ${!isArchived ? `
           <button class="archive-btn" data-action="archive-trip">
-            🗄 Concludi e archivia viaggio
+            🗄 Archivia ${typeInfo.label}
           </button>` : ''}
 
         </main>
@@ -155,16 +157,18 @@ export const TripScreen = {
 
       const archive = e.target.closest('[data-action="archive-trip"]');
       if (archive) {
+        const archivedType = tripTypeInfo(State.currentTrip?.type ?? 'viaggio').label;
         await Actions.archiveTrip(State.currentTrip.id);
-        Toast.show('Viaggio archiviato', { type: 'success' });
+        Toast.show(`${archivedType} archiviato`, { type: 'success' });
         Router.go('trip', { tripId: State.currentTrip.id });
         return;
       }
 
       const unarchive = e.target.closest('[data-action="unarchive-trip"]');
       if (unarchive) {
+        const unarchivedType = tripTypeInfo(State.currentTrip?.type ?? 'viaggio').label;
         await Actions.unarchiveTrip(State.currentTrip.id);
-        Toast.show('Viaggio riattivato');
+        Toast.show(`${unarchivedType} riattivato`);
         Router.go('trip', { tripId: State.currentTrip.id });
         return;
       }

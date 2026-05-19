@@ -61,7 +61,7 @@ export const Actions = {
 
     let settings = await DB.settings.get();
     if (!settings) {
-      settings = { theme: 'light', defaultCurrency: '€', onboardingCompleted: false, schemaVersion: 9 };
+      settings = { theme: 'light', defaultCurrency: '€', onboardingCompleted: false, schemaVersion: 12 };
       await DB.settings.save(settings);
     }
 
@@ -126,6 +126,14 @@ export const Actions = {
       await DB.settings.save(settings);
       State.trips = await DB.trips.getAll();
     }
+    if ((settings.schemaVersion ?? 0) < 12) {
+      // Aggiunge type: 'viaggio' ai trip esistenti senza type
+      await _migrateToV12();
+      settings.schemaVersion = 12;
+      await DB.settings.save(settings);
+      State.trips = await DB.trips.getAll();
+      console.log('[Actions] Migrazione v11→v12 (trip.type) completata');
+    }
 
     State.settings = settings;
 
@@ -134,7 +142,7 @@ export const Actions = {
       State.allExpenses = await DB.expenses.getAll();
     }
 
-    console.log(`[Actions] ✓ Pronto — ${State.trips.length} viaggio/i, schema v${settings.schemaVersion}`);
+    console.log(`[Actions] ✓ Pronto — ${State.trips.length} evento/i, schema v${settings.schemaVersion}`);
     State.trips.forEach(t =>
       console.log(`  [trip] "${t.name}" — ${t.participants.length} partecipanti`)
     );
@@ -545,6 +553,23 @@ async function _migrateToV11() {
   if (updated > 0) console.log(`[Actions] _migrateToV11: avatarIndex assegnato in ${updated} viaggio/i`);
 }
 
+// ── Migrazione v12: aggiunge trip.type ────────────────
+// I trip creati prima della v96 non hanno il campo type.
+// Default: 'viaggio' — retrocompatibile.
+// IDEMPOTENTE: salta trip che hanno già il campo.
+async function _migrateToV12() {
+  const trips = await DB.trips.getAll();
+  let updated = 0;
+  for (const trip of trips) {
+    if (!trip.type) {
+      trip.type = 'viaggio';
+      await DB.trips.save(trip);
+      updated++;
+    }
+  }
+  if (updated > 0) console.log(`[Actions] _migrateToV12: type aggiunto a ${updated} trip`);
+}
+
 // ── Migrazione v9: Ledger V3 ──────────────────────────
 // Converte expenses da {splits[], paidByParticipantId} a {consumers[], payers[]}.
 // Soft-deletes le spese personali (non esistono in V3).
@@ -778,6 +803,7 @@ async function _seedDemo() {
     startDate:    '2026-08-10',
     endDate:      '2026-08-20',
     currency:     '€',
+    type:         'viaggio',
     participants: [p1, p2, p3, p4],
     groups: [
       { id: crypto.randomUUID(), name: 'Bevitori',     members: [p1.id, p2.id] },

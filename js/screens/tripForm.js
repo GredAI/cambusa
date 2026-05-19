@@ -25,6 +25,7 @@ import { Topbar }  from '../ui.js';
 import { Toast }   from '../toast.js';
 import { Modal }   from '../ui/modal.js';
 import { participantAvatar, updateAvatarEl } from '../components/avatar.js';
+import { TRIP_TYPES, tripTypeInfo } from '../domain/tripType.js';
 
 const CURRENCIES = ['€', '$', '£', 'CHF'];
 const COLORS     = ['#10b981','#3b82f6','#f97316','#8b5cf6','#ef4444','#eab308','#06b6d4','#ec4899'];
@@ -39,7 +40,7 @@ let _isDirty     = false;
 let _initialized = false;
 
 function _emptyDraft() {
-  return { name: '', location: '', startDate: '', endDate: '', currency: '€', participants: [], groups: [] };
+  return { name: '', location: '', startDate: '', endDate: '', currency: '€', type: 'viaggio', participants: [], groups: [] };
 }
 
 function _cloneTrip(trip) {
@@ -49,6 +50,7 @@ function _cloneTrip(trip) {
     startDate:    trip.startDate,
     endDate:      trip.endDate,
     currency:     trip.currency,
+    type:         trip.type ?? 'viaggio',
     participants: trip.participants.map(p => ({ ...p })),
     groups:       (trip.groups ?? []).map(g => ({ ...g, members: [...(g.members ?? [])] })),
   };
@@ -69,19 +71,30 @@ export const TripFormScreen = {
       _initialized = true;
     }
 
-    const isEdit = _mode === 'edit';
+    const isEdit  = _mode === 'edit';
+    const typeInfo = tripTypeInfo(_draft.type);
 
     return `
       <div class="screen" id="screen-trip-form">
-        ${Topbar({ title: isEdit ? 'Modifica viaggio' : 'Nuovo viaggio', back: true })}
+        ${Topbar({ title: isEdit ? `Modifica ${typeInfo.label}` : `Nuovo ${typeInfo.label}`, back: true })}
 
         <main class="screen-content">
 
+          <!-- Tipo evento -->
+          <div class="card">
+            <label class="field-label">Tipo</label>
+            <div class="filter-row" id="type-row">
+              ${TRIP_TYPES.map(t => `
+                <button class="filter-chip ${_draft.type === t.id ? 'filter-chip--active' : ''}"
+                        data-type="${t.id}">${t.icon} ${t.label}</button>`).join('')}
+            </div>
+          </div>
+
           <!-- Nome + luogo -->
           <div class="card">
-            <label class="field-label">Nome viaggio *</label>
+            <label class="field-label">Nome ${typeInfo.label} *</label>
             <input id="f-name" class="input" type="text"
-                   placeholder="es. Grecia 2026" value="${_h(_draft.name)}" />
+                   placeholder="es. ${typeInfo.icon} ${typeInfo.label} 2026" value="${_h(_draft.name)}" />
             <label class="field-label">Luogo</label>
             <input id="f-location" class="input" type="text"
                    placeholder="es. Creta" value="${_h(_draft.location)}" style="margin-bottom:0" />
@@ -155,12 +168,12 @@ export const TripFormScreen = {
           </div>
 
           <button class="save-btn" id="btn-save">
-            ${isEdit ? 'Salva modifiche' : 'Crea viaggio'}
+            ${isEdit ? 'Salva modifiche' : `Crea ${typeInfo.label}`}
           </button>
 
           ${isEdit ? `
           <button class="delete-trip-btn" id="btn-delete-trip">
-            🗑 Elimina viaggio
+            🗑 Elimina ${typeInfo.label}
           </button>` : ''}
 
         </main>
@@ -179,6 +192,27 @@ export const TripFormScreen = {
       document.getElementById(id)?.addEventListener('input', () => { _isDirty = true; }));
     ['f-start', 'f-end'].forEach(id =>
       document.getElementById(id)?.addEventListener('change', () => { _isDirty = true; }));
+
+    // Tipo evento
+    document.getElementById('type-row')?.addEventListener('click', e => {
+      const btn = e.target.closest('[data-type]');
+      if (!btn) return;
+      _draft.type = btn.dataset.type;
+      _isDirty = true;
+      // Aggiorna chip attivo
+      document.querySelectorAll('[data-type]')
+        .forEach(b => b.classList.toggle('filter-chip--active', b.dataset.type === _draft.type));
+      // Aggiorna titolo topbar e label nome in tempo reale
+      const info = tripTypeInfo(_draft.type);
+      const titleEl = document.querySelector('#screen-trip-form .topbar__title');
+      if (titleEl) titleEl.textContent = _mode === 'edit' ? `Modifica ${info.label}` : `Nuovo ${info.label}`;
+      const nameLabelEl = document.querySelector('#screen-trip-form .field-label');
+      if (nameLabelEl) nameLabelEl.textContent = `Nome ${info.label} *`;
+      const saveBtn = document.getElementById('btn-save');
+      if (saveBtn && _mode !== 'edit') saveBtn.textContent = `Crea ${info.label}`;
+      const delBtn = document.getElementById('btn-delete-trip');
+      if (delBtn) delBtn.textContent = `🗑 Elimina ${info.label}`;
+    });
 
     // Valuta
     document.getElementById('currency-row')?.addEventListener('click', e => {
@@ -237,9 +271,10 @@ export const TripFormScreen = {
 
     // Elimina viaggio (solo in edit mode)
     document.getElementById('btn-delete-trip')?.addEventListener('click', () => {
-      const tripName = _original?.name ?? 'questo viaggio';
+      const tripName = _original?.name ?? 'questo evento';
+      const typeLabel = tripTypeInfo(_draft.type).label;
       Modal.confirm({
-        title:        'Elimina viaggio',
+        title:        `Elimina ${typeLabel}`,
         message:      `Stai per eliminare "${tripName}" con tutte le sue spese e saldi. L'operazione non può essere annullata.`,
         confirmLabel: 'Elimina definitivamente',
         danger:       true,
@@ -273,7 +308,7 @@ async function _handleSave() {
   _draft.startDate = document.getElementById('f-start')?.value           ?? '';
   _draft.endDate   = document.getElementById('f-end')?.value             ?? '';
 
-  if (!_draft.name)                      return Toast.show('Inserisci il nome del viaggio',              { type: 'error' });
+  if (!_draft.name)                      return Toast.show(`Inserisci il nome del ${tripTypeInfo(_draft.type).label.toLowerCase()}`, { type: 'error' });
   if (!_draft.startDate)                 return Toast.show('Seleziona la data di inizio',                 { type: 'error' });
   if (!_draft.endDate)                   return Toast.show('Seleziona la data di fine',                   { type: 'error' });
   if (_draft.endDate < _draft.startDate) return Toast.show('La data di fine deve essere dopo l\'inizio', { type: 'error' });
@@ -283,6 +318,7 @@ async function _handleSave() {
     const tripResult = await Actions.createTrip({
       name: _draft.name, location: _draft.location,
       startDate: _draft.startDate, endDate: _draft.endDate, currency: _draft.currency,
+      type: _draft.type,
       groups: _draft.groups,
     });
     if (!tripResult.ok) return Toast.show(tripResult.errors[0], { type: 'error' });
@@ -315,6 +351,7 @@ async function _handleSave() {
     await Actions.updateTrip(tripId, {
       name: _draft.name, location: _draft.location,
       startDate: _draft.startDate, endDate: _draft.endDate, currency: _draft.currency,
+      type: _draft.type,
       groups: _draft.groups,
     });
 
@@ -380,11 +417,11 @@ function _renderPItem(p) {
             ${hasPartial ? '📅 Presenza parziale' : '+ Presenza parziale'}
           </summary>
           <div class="presence-fields">
-            <label class="field-label">Arrivo (vuoto = inizio viaggio)</label>
+            <label class="field-label">Arrivo (vuoto = dall'inizio)</label>
             <input class="input p-input" type="date"
                    value="${p.startDate ?? ''}"
                    data-pid="${p.id}" data-pfield="startDate" />
-            <label class="field-label">Partenza (vuoto = fine viaggio)</label>
+            <label class="field-label">Partenza (vuoto = fino alla fine)</label>
             <input class="input p-input" type="date"
                    value="${p.endDate ?? ''}"
                    data-pid="${p.id}" data-pfield="endDate"
@@ -412,7 +449,7 @@ function _renderPItem(p) {
 }
 
 function _presenzaLabel(p, trip) {
-  if (!p.startDate && !p.endDate) return 'tutto il viaggio';
+  if (!p.startDate && !p.endDate) return 'sempre';
   const f   = d => new Date(d + 'T00:00:00')
                      .toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
   const from = p.startDate ?? trip.startDate;

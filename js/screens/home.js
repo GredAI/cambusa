@@ -5,6 +5,7 @@ import { Selectors } from '../selectors.js';
 import { Topbar, BottomNav, CambusaLogo } from '../ui.js';
 import { Toast }     from '../toast.js';
 import { Modal }     from '../ui/modal.js';
+import { tripTypeInfo } from '../domain/tripType.js';
 
 // ── Micro-arc logomark (card widget) ─────────────────────
 function _microArc() {
@@ -56,15 +57,16 @@ export const HomeScreen = {
 
     // ── Trip card (enhanced) ───────────────────────────────
     const tripCard = t => {
-      const total  = Selectors.tripTotalById(t.id);
-      const nSpese = Selectors.tripExpenseCountById(t.id);
+      const total    = Selectors.tripTotalById(t.id);
+      const nSpese   = Selectors.tripExpenseCountById(t.id);
+      const typeInfo = tripTypeInfo(t.type ?? 'viaggio');
       const stateClass = t.archivedAt ? 'trip-card--archived' : 'trip-card--active';
       return `
         <div class="card trip-card ${stateClass}" data-action="open-trip" data-trip-id="${t.id}">
           <div class="trip-card__header">
             ${_microArc()}
             <div class="trip-card__info">
-              <h2 class="trip-card__name">${t.name}</h2>
+              <h2 class="trip-card__name">${typeInfo.icon} ${t.name}</h2>
               <p class="trip-card__sub">${t.location}</p>
               <p class="trip-card__dates">${f(t.startDate)} – ${f(t.endDate)}</p>
             </div>
@@ -76,7 +78,7 @@ export const HomeScreen = {
             ${_avatarPill(t.participants)}
             <span class="trip-card__meta">${nSpese} ${nSpese === 1 ? 'spesa' : 'spese'}</span>
             <button class="trip-card__delete" data-action="delete-trip" data-trip-id="${t.id}"
-                    aria-label="Elimina viaggio">🗑</button>
+                    aria-label="Elimina">🗑</button>
           </div>
         </div>`;
     };
@@ -93,10 +95,10 @@ export const HomeScreen = {
     const activeSection = active.length
       ? active.map(tripCard).join('')
       : `<div class="empty-state">
-           <p class="empty-state__icon">🧳</p>
-           <p class="empty-state__text">Nessun viaggio ancora</p>
-           <p class="empty-state__sub">Inizia creando il tuo primo viaggio</p>
-           <button class="empty-state__cta" data-action="new-trip">Crea viaggio</button>
+           <p class="empty-state__icon">✈️</p>
+           <p class="empty-state__text">Nessun evento ancora</p>
+           <p class="empty-state__sub">Viaggi, serate, regate, festival… tutto qui</p>
+           <button class="empty-state__cta" data-action="new-trip">Aggiungi evento</button>
          </div>`;
 
     const archivedSection = archived.length ? `
@@ -119,9 +121,9 @@ export const HomeScreen = {
             ${CambusaLogo({ size: '40px', onDark: true })}
             <div class="home-hero__title-wrap">
               <h1 class="home-hero__title">Cambusa</h1>
-              <p class="home-hero__sub">Le tue avventure</p>
+              <p class="home-hero__sub">Le tue spese condivise</p>
             </div>
-            <button class="home-hero__add" data-action="new-trip" aria-label="Nuovo viaggio">
+            <button class="home-hero__add" data-action="new-trip" aria-label="Nuovo evento">
               <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
                 <line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
                 <line x1="5"  y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
@@ -133,7 +135,7 @@ export const HomeScreen = {
           <div class="home-hero__stats">
             <div class="home-hero__stat">
               <span class="home-hero__stat-value">${nActive}</span>
-              <span class="home-hero__stat-label">${nActive === 1 ? 'viaggio attivo' : 'viaggi attivi'}</span>
+              <span class="home-hero__stat-label">${nActive === 1 ? 'evento attivo' : 'eventi attivi'}</span>
             </div>
             <div class="home-hero__stat-sep"></div>
             <div class="home-hero__stat">
@@ -162,8 +164,8 @@ export const HomeScreen = {
           ${activeSection}
           ${archivedSection}
           <div class="import-row">
-            <label class="import-btn" title="Importa viaggio da file JSON">
-              ⬆ Importa viaggio
+            <label class="import-btn" title="Importa evento da file JSON">
+              ⬆ Importa evento
               <input type="file" id="input-import-json" accept=".json"
                      style="display:none" />
             </label>
@@ -200,16 +202,17 @@ export const HomeScreen = {
       const delBtn = e.target.closest('[data-action="delete-trip"]');
       if (delBtn) {
         e.stopPropagation();
-        const tripId = delBtn.dataset.tripId;
-        const trip   = State.trips.find(t => t.id === tripId);
+        const tripId   = delBtn.dataset.tripId;
+        const trip     = State.trips.find(t => t.id === tripId);
+        const typeLabel = tripTypeInfo(trip?.type ?? 'viaggio').label;
         Modal.confirm({
-          title:        'Elimina viaggio',
+          title:        `Elimina ${typeLabel}`,
           message:      `"${trip?.name ?? ''}" e tutte le sue spese verranno cancellati definitivamente.`,
           confirmLabel: 'Elimina',
           danger:       true,
           onConfirm: async () => {
             await Actions.deleteTrip(tripId);
-            Toast.show('Viaggio eliminato', { type: 'info' });
+            Toast.show(`${typeLabel} eliminato`, { type: 'info' });
             Router.go('home');
           },
         });
@@ -237,7 +240,7 @@ export const HomeScreen = {
 
       if (target === 'new-expense' || target === 'expenses' || target === 'balances') {
         const trip = State.currentTrip ?? State.trips[0] ?? null;
-        if (!trip) { Toast.show('Crea prima un viaggio', { type: 'info' }); return; }
+        if (!trip) { Toast.show('Crea prima un evento', { type: 'info' }); return; }
         State.currentTrip = trip;
         Router.go(target, { tripId: trip.id });
         return;
