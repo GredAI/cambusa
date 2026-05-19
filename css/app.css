@@ -3723,3 +3723,38 @@ html[data-theme="dark"] .home-hero {
 .donut-arc:hover {
   opacity: .8;
 }
+
+/* =====================================================
+   COLOR PICKER (trip form — participant editor)
+   ===================================================== */
+
+.color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform .15s, border-color .15s;
+  outline: none;
+}
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+.color-swatch--active {
+  border-color: var(--color-text);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px var(--color-bg);
+}
+
+/* Hero stat grande (totale speso) */
+.home-hero__stat-value--lg {
+  font-size: 22px;
+  letter-spacing: -0.5px;
+}

@@ -28,7 +28,20 @@ import { participantAvatar, updateAvatarEl } from '../components/avatar.js';
 import { TRIP_TYPES, tripTypeInfo } from '../domain/tripType.js';
 
 const CURRENCIES = ['€', '$', '£', 'CHF'];
-const COLORS     = ['#10b981','#3b82f6','#f97316','#8b5cf6','#ef4444','#eab308','#06b6d4','#ec4899'];
+const COLORS = [
+  '#2fa7a0', // teal brand
+  '#f47461', // coral brand
+  '#3b82f6', // blue
+  '#f97316', // orange
+  '#8b5cf6', // violet
+  '#10b981', // emerald
+  '#ef4444', // red
+  '#eab308', // yellow
+  '#06b6d4', // cyan
+  '#ec4899', // pink
+  '#d97706', // amber
+  '#6366f1', // indigo
+];
 
 // ── Stato modulo ──────────────────────────────────────
 let _mode        = 'create';
@@ -436,6 +449,15 @@ function _renderPItem(p) {
         <input class="input p-input" type="text" value="${_h(p.name)}"
                data-pid="${p.id}" data-pfield="name" />
 
+        <label class="field-label">Colore</label>
+        <div class="color-picker">
+          ${COLORS.map(c => `
+            <button class="color-swatch ${p.color === c ? 'color-swatch--active' : ''}"
+                    style="background:${c}"
+                    data-pid="${p.id}" data-colorpick="${c}"
+                    aria-label="Colore ${c}"></button>`).join('')}
+        </div>
+
         <details class="presence-section" ${hasPartial ? 'open' : ''}>
           <summary class="presence-summary">
             ${hasPartial ? '📅 Presenza parziale' : '+ Presenza parziale'}
@@ -512,6 +534,25 @@ function _bindParticipantEvents() {
   document.querySelectorAll('[data-pfield]').forEach(input => {
     input.addEventListener('input',  _updatePField);
     input.addEventListener('change', _updatePField);
+  });
+
+  // Color picker
+  document.querySelectorAll('[data-colorpick]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const pid   = e.currentTarget.dataset.pid;
+      const color = e.currentTarget.dataset.colorpick;
+      const p     = _findP(pid);
+      if (!p) return;
+      p.color  = color;
+      _isDirty = true;
+      // Aggiorna swatch attivo
+      document.querySelectorAll(`.p-item[data-pid="${pid}"] .color-swatch`)
+        .forEach(b => b.classList.toggle('color-swatch--active', b.dataset.colorpick === color));
+      // Aggiorna avatar nell'intestazione
+      const avatarEl = document.querySelector(`.p-item[data-pid="${pid}"] .p-item__head > .avatar`);
+      if (avatarEl) updateAvatarEl(avatarEl, p);
+    });
   });
 
   // Avatar picker

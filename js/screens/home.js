@@ -26,9 +26,8 @@ function _microArc() {
 function _avatarPill(participants) {
   const shown = participants.slice(0, 5);
   const extra = participants.length - shown.length;
-  const colors = ['#2FA7A0','#F47461','#1D3844','#d4a96a','#8b5cf6'];
   const circles = shown.map((p, i) => `
-    <div class="trip-avatar" style="background:${colors[i % colors.length]};
+    <div class="trip-avatar" style="background:${p.color ?? '#2fa7a0'};
          margin-left:${i === 0 ? '0' : '-7px'};z-index:${10 - i}">
       ${p.name.charAt(0).toUpperCase()}
     </div>`).join('');
@@ -47,13 +46,10 @@ export const HomeScreen = {
     const f = d => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
     // Hero stats
-    const nActive   = active.length;
-    const nArchived = archived.length;
-    const totalSpese = trips.reduce((s, t) => s + Selectors.tripExpenseCountById(t.id), 0);
-    // All unique participants across active trips (by id)
-    const partMap = new Map();
-    active.forEach(t => t.participants.forEach(p => partMap.set(p.id, p)));
-    const heroParticipants = [...partMap.values()];
+    const nArchived   = archived.length;
+    const totalSpeso  = active.reduce((s, t) => s + Selectors.tripTotalById(t.id), 0);
+    // Valuta prevalente (quella del primo viaggio attivo, o €)
+    const heroCur = active[0]?.currency ?? '€';
 
     // ── Trip card (enhanced) ───────────────────────────────
     const tripCard = t => {
@@ -82,14 +78,6 @@ export const HomeScreen = {
           </div>
         </div>`;
     };
-
-    // ── Hero participant orbit ─────────────────────────────
-    const heroColors = ['#2FA7A0','#F47461','#d4a96a','#8b5cf6','#1D3844'];
-    const heroAvatarsHtml = heroParticipants.slice(0, 6).map((p, i) => `
-      <div class="hero-avatar" style="background:${heroColors[i % heroColors.length]}">
-        ${p.name.charAt(0).toUpperCase()}
-      </div>`).join('');
-    const heroExtraCount = heroParticipants.length > 6 ? heroParticipants.length - 6 : 0;
 
     // ── Sections ──────────────────────────────────────────
     const activeSection = active.length
@@ -131,33 +119,21 @@ export const HomeScreen = {
             </button>
           </div>
 
-          ${trips.length ? `
+          ${active.length ? `
           <div class="home-hero__stats">
             <div class="home-hero__stat">
-              <span class="home-hero__stat-value">${nActive}</span>
-              <span class="home-hero__stat-label">${nActive === 1 ? 'evento attivo' : 'eventi attivi'}</span>
-            </div>
-            <div class="home-hero__stat-sep"></div>
-            <div class="home-hero__stat">
-              <span class="home-hero__stat-value">${totalSpese}</span>
-              <span class="home-hero__stat-label">${totalSpese === 1 ? 'spesa' : 'spese'} totali</span>
+              <span class="home-hero__stat-value home-hero__stat-value--lg">
+                ${heroCur} ${(totalSpeso / 100).toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </span>
+              <span class="home-hero__stat-label">speso in eventi attivi</span>
             </div>
             ${nArchived ? `
             <div class="home-hero__stat-sep"></div>
             <div class="home-hero__stat">
               <span class="home-hero__stat-value">${nArchived}</span>
-              <span class="home-hero__stat-label">archiviati</span>
+              <span class="home-hero__stat-label">${nArchived === 1 ? 'archiviato' : 'archiviati'}</span>
             </div>` : ''}
-          </div>
-          ${heroParticipants.length ? `
-          <div class="home-hero__participants">
-            <div class="home-hero__avatars">
-              ${heroAvatarsHtml}
-              ${heroExtraCount ? `<div class="hero-avatar hero-avatar--extra">+${heroExtraCount}</div>` : ''}
-            </div>
-            <span class="home-hero__part-label">${heroParticipants.length} partecipanti</span>
           </div>` : ''}
-          ` : ''}
         </header>
 
         <main class="screen-content">
