@@ -9,6 +9,8 @@
    2. Se non trovato, prende il numero decimale più alto
    3. Il nome del negozio è nelle prime righe leggibili
    4. La categoria è indovinata via keyword matching
+   5. parseReceiptItems() usa il totale rilevato per
+      escludere la riga totale dall'elenco articoli
    ===================================================== */
 
 // ── Pattern totale ─────────────────────────────────────
@@ -83,17 +85,32 @@ function _guessCategory(text) {
 }
 
 // ── Righe da saltare nel parsing articoli ──────────────
+// Più esteso rispetto alla v1: cattura varianti OCR comuni
+// (es. T0TALE con zero, "TOTALE  A" con lettera IVA, ecc.)
 const SKIP_ITEM_RX = [
   /^\s*$/,
   /^[*=\-_#+|]{2,}/,
-  /\b(totale|total|tot\.?|sub-?tot|subtotale)\b/i,
-  /\b(iva|vat|tax)\s*\d/i,
-  /\b(sconto|discount|omaggio|abbuono)\b/i,
-  /\b(data|ora\b|cassa|pos\b|p\.?\s*iva|c\.?\s*f\.?|cod\.?\s*fisc)\b/i,
-  /\b(contante|carta|bancomat|paywave|contactless|resto|change|visa|mastercard)\b/i,
-  /\b(grazie|arrivederci|scontrino|ricevuta|fiscale|cortesia)\b/i,
-  /^\d{2}[\/\-]\d{2}[\/\-]\d{2,4}/,   // data
-  /^\d{2}:\d{2}/,                        // ora
+  // totale e varianti OCR (T0TALE, T°TALE, TOT, SUBTOT...)
+  /\b(t[o0°]tale|t[o0°]tal|tot\.?|sub-?tot|subtotale|sub\s*totale)\b/i,
+  // IVA / tasse
+  /\b(iva|vat|tax)\s*[\d%]/i,
+  /\b(imponibile|imp\.?)\s*[\d]/i,
+  // sconti e omaggi
+  /\b(sconto|discount|omaggio|abbuono|fidelity|punti|premio)\b/i,
+  // metadati scontrino
+  /\b(data|ora\b|cassa|pos\b|p\.?\s*iva|c\.?\s*f\.?|cod\.?\s*fisc|scontrino\s*n|ricevuta\s*n)\b/i,
+  // pagamento
+  /\b(contante|carta|bancomat|paywave|contactless|resto|change|visa|mastercard|amex|pagobancomat)\b/i,
+  // saluti / footer
+  /\b(grazie|arrivederci|scontrino|ricevuta|fiscale|cortesia|servito)\b/i,
+  // numero progressivo scontrino (es. "0001 23/05/2024")
+  /^\d{4,}\s+\d{2}[\/\-]\d{2}/,
+  // data
+  /^\d{2}[\/\-]\d{2}[\/\-]\d{2,4}/,
+  // ora
+  /^\d{2}:\d{2}/,
+  // riga solo cifre/barcode
+  /^\d{6,}$/,
 ];
 
 /** Prezzo a destra riga: ultimo numero decimale della riga */
@@ -103,9 +120,10 @@ const PRICE_RIGHT_RX = /(\d{1,5}[.,]\d{2})\s*[A-Z]?\s*$/;
  * Estrae le singole voci (articoli + prezzo) dal testo OCR di uno scontrino.
  *
  * @param {string} text
+ * @param {number|null} skipTotalCents — esclude righe il cui importo corrisponde al totale
  * @returns {Array<{id: string, name: string, amountCents: number}>}
  */
-export function parseReceiptItems(text) {
+export function parseReceiptItems(text, skipTotalCents = null) {
   if (!text) return [];
 
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -121,6 +139,9 @@ export function parseReceiptItems(text) {
 
     const amountCents = Math.round(_parseAmount(match[1]) * 100);
     if (amountCents <= 0 || amountCents > 99900) continue;  // ignora subtotali grandi
+
+    // Salta se l'importo corrisponde al totale rilevato (riga totale non filtrata dal regex)
+    if (skipTotalCents !== null && Math.abs(amountCents - skipTotalCents) <= 2) continue;
 
     // Nome = tutto prima del prezzo, ripulito
     const rawName = line.slice(0, match.index)
@@ -148,10 +169,10 @@ export function parseReceiptItems(text) {
  * Analizza il testo OCR di uno scontrino.
  *
  * @param {string} text
- * @returns {{ amount: number|null, title: string, category: string, raw: string }}
+ * @returns {{ amount: number|null, totalCents: number|null, title: string, category: string, raw: string }}
  */
 export function parseReceipt(text) {
-  if (!text) return { amount: null, title: '', category: 'altro', raw: '' };
+  if (!text) return { amount: null, totalCents: null, title: '', category: 'altro', raw: '' };
 
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
@@ -174,6 +195,8 @@ export function parseReceipt(text) {
     if (candidates.length) amount = Math.max(...candidates);
   }
 
+  const totalCents = amount !== null ? Math.round(amount * 100) : null;
+
   // ── Titolo (nome negozio dalle prime righe) ──────────
   const titleLine = lines
     .slice(0, 6)
@@ -189,5 +212,5 @@ export function parseReceipt(text) {
   // ── Categoria ────────────────────────────────────────
   const category = _guessCategory(text);
 
-  return { amount, title, category, raw: text };
+  return { amount, totalCents, title, category, raw: text };
 }

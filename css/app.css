@@ -3211,6 +3211,53 @@ html[data-theme="dark"] .bottom-nav {
   cursor: not-allowed;
 }
 
+/* Bottone secondario (shortcut dividi equamente) */
+.rs-secondary-btn {
+  width: 100%;
+  padding: 13px 20px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  margin-top: 8px;
+}
+.rs-secondary-btn:active  { opacity: .8; }
+.rs-secondary-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Badge totale rilevato dallo scontrino */
+.rs-detected-total {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  margin-left: 6px;
+}
+
+/* Banner discrepanza somma voci vs totale scontrino */
+.rs-mismatch-banner {
+  background: #fff8ec;
+  border: 1.5px solid #f6c14a;
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #7a5a10;
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+/* Sommario nella quick-payer phase */
+.rs-quick-summary {
+  font-size: 14px;
+  color: var(--color-text-sub);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.rs-quick-summary strong { color: var(--color-text); }
+
 /* Card assegnazione articolo */
 .rs-assign-card {
   background: var(--color-surface);

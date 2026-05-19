@@ -21,22 +21,24 @@ import { today }   from '../domain/normalize.js';
 
 // ── Stato modulo ──────────────────────────────────────
 
-let _phase       = 'scan';  // 'scan' | 'items' | 'assign'
-let _items       = [];       // [{ id, name, amountCents }]
-let _assignments = {};       // itemId → Set<participantId>
-let _payerIds    = new Set();
-let _title       = '';
-let _category    = 'altro';
-let _date        = '';
+let _phase              = 'scan';  // 'scan' | 'items' | 'assign'
+let _items              = [];       // [{ id, name, amountCents }]
+let _assignments        = {};       // itemId → Set<participantId>
+let _payerIds           = new Set();
+let _title              = '';
+let _category           = 'altro';
+let _date               = '';
+let _detectedTotalCents = null;    // totale rilevato dal testo OCR
 
 function _reset() {
-  _phase       = 'scan';
-  _items       = [];
-  _assignments = {};
-  _payerIds    = new Set();
-  _title       = '';
-  _category    = 'altro';
-  _date        = today();
+  _phase              = 'scan';
+  _items              = [];
+  _assignments        = {};
+  _payerIds           = new Set();
+  _title              = '';
+  _category           = 'altro';
+  _date               = today();
+  _detectedTotalCents = null;
 }
 
 // ── Helpers ───────────────────────────────────────────
@@ -118,7 +120,23 @@ function _renderItemsList() {
 }
 
 function _htmlItems() {
-  const total = _totalCents();
+  const total       = _totalCents();
+  const hasDetected = _detectedTotalCents !== null;
+  const mismatch    = hasDetected && Math.abs(total - _detectedTotalCents) > 2;
+
+  // Avviso discrepanza tra somma voci e totale scontrino
+  const mismatchBanner = mismatch ? `
+    <div class="rs-mismatch-banner">
+      ⚠️ La somma delle voci (${_fmtCur(total)}) differisce dal totale
+      rilevato sullo scontrino (${_fmtCur(_detectedTotalCents)}).
+      Controlla e correggi le voci prima di procedere.
+    </div>` : '';
+
+  // Riga totale rilevato (solo info, non il badge somma)
+  const detectedRow = hasDetected ? `
+    <span class="rs-detected-total">Scontrino: ${_fmtCur(_detectedTotalCents)}</span>` : '';
+
+  const canProceed = _items.length > 0;
   return `
     <div class="rs-phase" id="rs-phase-items">
 
@@ -132,7 +150,10 @@ function _htmlItems() {
       <div class="rs-section-label" style="margin-top:20px">
         Voci rilevate
         <span class="rs-total-badge">${_fmtCur(total)}</span>
+        ${detectedRow}
       </div>
+
+      ${mismatchBanner}
 
       <div id="rs-items-list">
         ${_renderItemsList()}
@@ -140,9 +161,12 @@ function _htmlItems() {
 
       <button class="rs-add-item-btn" id="rs-add-item-btn">+ Aggiungi voce</button>
 
-      <button class="rs-primary-btn" id="rs-items-next-btn"
-              ${_items.length === 0 ? 'disabled' : ''}>
+      <button class="rs-primary-btn" id="rs-items-next-btn" ${canProceed ? '' : 'disabled'}>
         Avanti — Assegna le voci →
+      </button>
+
+      <button class="rs-secondary-btn" id="rs-quick-create-btn" ${canProceed ? '' : 'disabled'}>
+        Dividi equamente — salta assegnazione
       </button>
     </div>`;
 }
@@ -225,6 +249,52 @@ function _htmlAssign() {
     </div>`;
 }
 
+// ── Phase "quick payer" — salta assegnazione ──────────
+
+function _htmlQuickPayer() {
+  const trip         = State.currentTrip;
+  const participants = trip?.participants ?? [];
+  const total        = _totalCents();
+  const cur          = trip?.currency ?? '€';
+
+  const payerChips = participants.map(p => `
+    <button class="rs-chip ${_payerIds.has(p.id) ? 'rs-chip--active' : ''}"
+            data-payer-pid="${p.id}">
+      ${_esc(p.name.split(' ')[0])}
+    </button>`).join('');
+
+  const canCreate = _payerIds.size > 0;
+
+  return `
+    <div class="rs-phase" id="rs-phase-quick-payer">
+      <p class="rs-quick-summary">
+        <strong>${_items.length} voci</strong> — ${cur} ${_fmt(total)} divisi equamente tra tutti i partecipanti.
+      </p>
+
+      <div class="rs-section-label">Chi ha pagato?</div>
+      <div class="rs-chips-row">${payerChips}</div>
+
+      <button class="rs-primary-btn" id="rs-create-btn" ${canCreate ? '' : 'disabled'}>
+        ✓ Crea spesa — ${_fmtCur(total)}
+      </button>
+
+      <button class="rs-link-btn" id="rs-back-to-items-btn">
+        ← Torna alle voci
+      </button>
+    </div>`;
+}
+
+function _goToQuickPayerPhase() {
+  _phase = 'quick-payer';
+  const main = document.getElementById('rs-main');
+  if (main) main.innerHTML = _htmlQuickPayer();
+}
+
+function _rerenderQuickPayer() {
+  const main = document.getElementById('rs-main');
+  if (main && _phase === 'quick-payer') main.innerHTML = _htmlQuickPayer();
+}
+
 // ── Transizioni di fase ───────────────────────────────
 
 function _goToItemsPhase() {
@@ -245,12 +315,22 @@ function _rerenderAssign() {
 }
 
 function _rerenderItemsList() {
-  const list  = document.getElementById('rs-items-list');
-  const badge = document.querySelector('.rs-total-badge');
-  const btn   = document.getElementById('rs-items-next-btn');
-  if (list)  list.innerHTML    = _renderItemsList();
-  if (badge) badge.textContent = _fmtCur(_totalCents());
-  if (btn)   btn.disabled      = _items.length === 0;
+  const list      = document.getElementById('rs-items-list');
+  const badge     = document.querySelector('.rs-total-badge');
+  const nextBtn   = document.getElementById('rs-items-next-btn');
+  const quickBtn  = document.getElementById('rs-quick-create-btn');
+  if (list)  list.innerHTML     = _renderItemsList();
+  if (badge) badge.textContent  = _fmtCur(_totalCents());
+  if (nextBtn)  nextBtn.disabled  = _items.length === 0;
+  if (quickBtn) quickBtn.disabled = _items.length === 0;
+
+  // Aggiorna/rimuovi banner discrepanza
+  const existing = document.querySelector('.rs-mismatch-banner');
+  const mismatch = _detectedTotalCents !== null &&
+                   Math.abs(_totalCents() - _detectedTotalCents) > 2;
+  if (existing) {
+    existing.style.display = mismatch ? '' : 'none';
+  }
 }
 
 // ── Pre-assegna tutti a tutti ─────────────────────────
@@ -389,19 +469,36 @@ function _onClick(e) {
       }, 50);
       return;
     }
-    // Avanti
-    if (e.target.closest('#rs-items-next-btn')) {
-      // Sync title + date dai campi (potrebbero non aver ancora sparato un input event)
+    // Sync title + date (comune ad Avanti e shortcut)
+    const _syncFields = () => {
       _title = document.getElementById('rs-title-input')?.value?.trim() || _title;
       _date  = document.getElementById('rs-date-input')?.value          || _date;
-      // Valida
-      const invalid = _items.filter(i => !i.name.trim() || i.amountCents <= 0);
-      if (invalid.length) {
-        Toast.show('Completa nome e importo per tutte le voci', { type: 'info' });
+    };
+
+    // Avanti → Phase 3 (assegnazione completa)
+    if (e.target.closest('#rs-items-next-btn')) {
+      _syncFields();
+      // Rimuove automaticamente le voci senza nome/importo invece di bloccare
+      _items = _items.filter(i => i.name.trim() && i.amountCents > 0);
+      if (_items.length === 0) {
+        Toast.show('Aggiungi almeno una voce con nome e importo', { type: 'info' });
         return;
       }
       _autoAssignAll();
       _goToAssignPhase();
+      return;
+    }
+
+    // Shortcut: Dividi equamente → mostra solo selezione pagante
+    if (e.target.closest('#rs-quick-create-btn')) {
+      _syncFields();
+      _items = _items.filter(i => i.name.trim() && i.amountCents > 0);
+      if (_items.length === 0) {
+        Toast.show('Aggiungi almeno una voce con nome e importo', { type: 'info' });
+        return;
+      }
+      _autoAssignAll();
+      _goToQuickPayerPhase();
       return;
     }
     return;
@@ -445,6 +542,28 @@ function _onClick(e) {
     // Crea spesa
     if (e.target.closest('#rs-create-btn')) {
       _createExpense();
+      return;
+    }
+  }
+
+  // ── Phase quick-payer ─────────────────────────────
+  if (_phase === 'quick-payer') {
+    // Selezione pagante
+    const payerBtn = e.target.closest('[data-payer-pid]');
+    if (payerBtn) {
+      const pid = payerBtn.dataset.payerPid;
+      _payerIds.has(pid) ? _payerIds.delete(pid) : _payerIds.add(pid);
+      _rerenderQuickPayer();
+      return;
+    }
+    // Crea spesa
+    if (e.target.closest('#rs-create-btn')) {
+      _createExpense();
+      return;
+    }
+    // Torna alle voci
+    if (e.target.closest('#rs-back-to-items-btn')) {
+      _goToItemsPhase();
       return;
     }
   }
@@ -492,11 +611,13 @@ async function _onChange(e) {
       if (fill)  fill.style.width    = pct + '%';
       if (label) label.textContent   = `Analisi in corso… ${pct}%`;
     });
-    const parsed = parseReceipt(text);
-    _title    = parsed.title    ?? '';
-    _category = parsed.category ?? 'altro';
-    _items    = parseReceiptItems(text);
-    _date     = today();
+    const parsed        = parseReceipt(text);
+    _title              = parsed.title    ?? '';
+    _category           = parsed.category ?? 'altro';
+    _detectedTotalCents = parsed.totalCents ?? null;
+    // Passa il totale rilevato per escludere la riga totale dagli articoli
+    _items              = parseReceiptItems(text, _detectedTotalCents);
+    _date               = today();
 
     if (_items.length === 0) {
       Toast.show('Nessuna voce rilevata — aggiungi manualmente', { type: 'info' });
