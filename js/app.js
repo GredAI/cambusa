@@ -10,6 +10,7 @@ import { Actions }          from './actions.js';
 import { State }            from './state.js';
 import { Router }           from './router.js';
 import { Render, applyTheme } from './ui.js';
+import { maybeAutoBackup }  from './autoBackup.js';
 
 import { HomeScreen }        from './screens/home.js';
 import { TripScreen }        from './screens/trip.js';
@@ -90,6 +91,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
       Router.go('home');           // prima schermata
     }
+
+    // Auto-backup silenzioso: 3 secondi dopo il boot per non bloccare il render
+    setTimeout(() => maybeAutoBackup(), 3000);
 
     console.log('[Cambusa] ✓ Pronta');
   } catch (err) {

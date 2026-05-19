@@ -2105,6 +2105,35 @@ details[open] .archive-section__summary::before { transform: rotate(90deg); }
 .cat-bar-fill.cat-servizi   { background: var(--cat-servizi);   }
 .cat-bar-fill.cat-altro     { background: var(--color-text-muted); }
 
+/* ── Auto-backup status row ───────────────────────────── */
+.backup-status-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-bg);
+  border-radius: 12px;
+  margin-bottom: 14px;
+}
+.backup-status-info {
+  display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0;
+}
+.backup-status-icon { font-size: 22px; flex-shrink: 0; line-height: 1.2; }
+.backup-status-title {
+  font-size: 13px; font-weight: 600; color: var(--color-text); margin: 0 0 2px;
+}
+.backup-status-sub {
+  font-size: 12px; color: var(--color-text-muted); margin: 0;
+}
+.backup-dl-btn {
+  flex-shrink: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-primary);
+}
+.backup-dl-btn:active { opacity: 0.6; }
+
 /* ── Export row (balances screen) ────────────────────── */
 .export-row {
   display: flex;

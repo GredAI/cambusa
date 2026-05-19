@@ -8,6 +8,7 @@ import { Actions } from '../actions.js';
 import { Router }  from '../router.js';
 import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
+import { getLastBackupInfo, downloadLastBackup, maybeAutoBackup } from '../autoBackup.js';
 
 const APP_VERSION = 'v95';
 
@@ -29,12 +30,13 @@ function _safariDownload(jsonString, filename) {
 export const SettingsScreen = {
 
   html() {
-    const settings = State.settings ?? {};
-    const defCur   = settings.defaultCurrency ?? '€';
-    const theme    = settings.theme ?? 'light';
-    const nTrips   = State.trips.length;
-    const nActive  = State.trips.filter(t => !t.archivedAt).length;
-    const nArch    = nTrips - nActive;
+    const settings   = State.settings ?? {};
+    const defCur     = settings.defaultCurrency ?? '€';
+    const theme      = settings.theme ?? 'light';
+    const nTrips     = State.trips.length;
+    const nActive    = State.trips.filter(t => !t.archivedAt).length;
+    const nArch      = nTrips - nActive;
+    const backupInfo = getLastBackupInfo();
 
     const curChips = CURRENCIES.map(c => `
       <button class="filter-chip ${c === defCur ? 'filter-chip--active' : ''}"
@@ -83,8 +85,28 @@ export const SettingsScreen = {
               ${nActive} attivi · ${nArch} archiviati
             </p>
 
-            <!-- Esporta -->
-            <p class="field-hint" style="text-align:left;padding:0 0 6px;font-weight:600">Esporta</p>
+            <!-- Auto-backup -->
+            <div class="backup-status-row">
+              <div class="backup-status-info">
+                <span class="backup-status-icon">💾</span>
+                <div>
+                  <p class="backup-status-title">Auto-backup giornaliero</p>
+                  <p class="backup-status-sub">
+                    ${backupInfo.hasBackup
+                      ? `Ultimo: ${backupInfo.dateLabel} · ${backupInfo.sizeKb} KB`
+                      : 'Nessun backup ancora — avviene al primo utilizzo'}
+                  </p>
+                </div>
+              </div>
+              ${backupInfo.hasBackup ? `
+                <button class="backup-dl-btn" data-action="download-autobackup"
+                        title="Scarica ultimo backup">
+                  ⬇
+                </button>` : ''}
+            </div>
+
+            <!-- Esporta manuale -->
+            <p class="field-hint" style="text-align:left;padding:6px 0 6px;font-weight:600">Esporta</p>
             <div class="export-row">
               <button class="export-btn" data-action="export-all">
                 ⬇ Salva file
@@ -192,6 +214,17 @@ export const SettingsScreen = {
       });
 
     screen.addEventListener('click', async e => {
+
+      // Scarica ultimo auto-backup
+      if (e.target.closest('[data-action="download-autobackup"]')) {
+        const ok = downloadLastBackup();
+        if (ok) {
+          Toast.show('⬇ Download avviato', { type: 'success' });
+        } else {
+          Toast.show('Nessun backup disponibile', { type: 'info' });
+        }
+        return;
+      }
 
       // Valuta di default
       const curBtn = e.target.closest('[data-action="set-currency"]');
