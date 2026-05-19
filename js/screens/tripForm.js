@@ -607,18 +607,26 @@ function _renderGroupItem(g) {
         <input class="input g-input" type="text" value="${_h(g.name)}"
                data-gid="${g.id}" data-gfield="name" />
 
-        <label class="field-label">Membri</label>
+        <div class="group-members-header">
+          <label class="field-label" style="margin:0">Partecipanti</label>
+          <span class="group-members-count">${members.length > 0 ? `${members.length} nel gruppo` : 'nessuno nel gruppo'}</span>
+        </div>
+        <p class="field-hint" style="margin-bottom:8px">Tocca un partecipante per aggiungerlo o rimuoverlo.</p>
         <div class="group-member-list">
-          ${_draft.participants.map(p => {
-            const isMember = (g.members ?? []).includes(p.id);
-            return `
-              <button class="group-member-toggle ${isMember ? 'group-member-toggle--on' : ''}"
-                      data-gmtoggle="${p.id}" data-gmgid="${g.id}">
-                ${participantAvatar(p, 'avatar--sm')}
-                <span class="group-member-toggle__name">${_h(p.name)}</span>
-                ${isMember ? '<span class="split-check">✓</span>' : ''}
-              </button>`;
-          }).join('')}
+          ${_draft.participants.length === 0
+            ? `<p class="field-hint">Nessun partecipante ancora — aggiungili sopra.</p>`
+            : _draft.participants.map(p => {
+                const isMember = (g.members ?? []).includes(p.id);
+                return `
+                  <button class="group-member-toggle ${isMember ? 'group-member-toggle--on' : ''}"
+                          data-gmtoggle="${p.id}" data-gmgid="${g.id}">
+                    ${participantAvatar(p, 'avatar--sm')}
+                    <span class="group-member-toggle__name">${_h(p.name)}</span>
+                    <span class="gmt-badge ${isMember ? 'gmt-badge--in' : 'gmt-badge--out'}">
+                      ${isMember ? '✓ nel gruppo' : '＋ aggiungi'}
+                    </span>
+                  </button>`;
+              }).join('')}
         </div>
 
         <button class="btn-remove-p" data-removegid="${g.id}">
