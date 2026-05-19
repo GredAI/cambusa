@@ -21,6 +21,7 @@ import { Toast }       from '../toast.js';
 
 // ── Stato modulo ──────────────────────────────────────
 let _activeFilter   = 'all';
+let _activeGroupId  = null;   // id gruppo attivo per filtro, null = tutti
 let _searchQuery    = '';
 let _searchVisible  = false;
 const _openBreakdowns = new Set();
@@ -52,6 +53,7 @@ export const ExpensesScreen = {
 
         <main class="screen-content">
           ${FilterChips(categories, _activeFilter)}
+          ${_renderGroupFilterRow()}
           <div id="search-bar-container">${_renderSearchBar()}</div>
           <div id="expenses-list">
             ${_renderList()}
@@ -144,6 +146,20 @@ export const ExpensesScreen = {
           return;
         }
 
+        // ── Filtro gruppo ─────────────────────────────
+        const gChip = e.target.closest('[data-group-filter]');
+        if (gChip) {
+          _activeGroupId = gChip.dataset.groupFilter || null;
+          document.querySelectorAll('[data-group-filter]').forEach(c =>
+            c.classList.toggle('filter-chip--active',
+              (_activeGroupId === null && c.dataset.groupFilter === '') ||
+              c.dataset.groupFilter === _activeGroupId
+            )
+          );
+          document.getElementById('expenses-list').innerHTML = _renderList();
+          return;
+        }
+
         // ── Elimina spesa ────────────────────────────
         const del = e.target.closest('[data-delete-expense]');
         if (del) {
@@ -204,6 +220,67 @@ function _renderSearchBar() {
     </div>`;
 }
 
+// ── Chip filtro gruppo ────────────────────────────────
+function _renderGroupFilterRow() {
+  const trip   = State.currentTrip;
+  const groups = (trip?.groups ?? []).filter(g => (g.members ?? []).length > 0);
+  if (!groups.length) return '';
+
+  const allActive = _activeGroupId === null;
+  return `
+    <div class="filter-row group-filter-row" id="group-filter-row">
+      <button class="filter-chip ${allActive ? 'filter-chip--active' : ''}"
+              data-group-filter="">Tutti</button>
+      ${groups.map(g => `
+        <button class="filter-chip filter-chip--group ${_activeGroupId === g.id ? 'filter-chip--active' : ''}"
+                data-group-filter="${g.id}">
+          👥 ${g.name}
+        </button>`).join('')}
+    </div>`;
+}
+
+// ── Gruppo che corrisponde esattamente ai consumer ────
+function _matchingGroup(expense) {
+  const trip   = State.currentTrip;
+  const groups = trip?.groups ?? [];
+  if (!groups.length) return null;
+
+  const consumerIds = new Set(
+    (expense.consumers ?? []).map(c => c.participantId)
+  );
+  if (!consumerIds.size) return null;
+
+  for (const g of groups) {
+    const members = g.members ?? [];
+    if (!members.length) continue;
+    // Corrispondenza esatta: stessi partecipanti, stesso numero
+    if (members.length === consumerIds.size &&
+        members.every(pid => consumerIds.has(pid))) {
+      return g;
+    }
+  }
+  return null;
+}
+
+// ── Filtra per gruppo (tutti i membri del gruppo sono consumer) ──
+function _filterByGroup(dateGroups, groupId) {
+  const trip  = State.currentTrip;
+  const group = (trip?.groups ?? []).find(g => g.id === groupId);
+  if (!group) return dateGroups;
+  const members = group.members ?? [];
+  if (!members.length) return dateGroups;
+
+  return dateGroups
+    .map(dg => ({
+      ...dg,
+      expenses: dg.expenses.filter(e => {
+        const cids = (e.consumers ?? []).map(c => c.participantId);
+        return members.every(pid => cids.includes(pid));
+      }),
+    }))
+    .filter(dg => dg.expenses.length > 0);
+}
+
 // ── Render lista (partial) ────────────────────────────
 function _renderList() {
   const trip = State.currentTrip;
@@ -213,12 +290,19 @@ function _renderList() {
   let   groups    = Selectors.groupedExpenses(category);
   const searching = _searchVisible && _searchQuery.trim().length > 0;
 
-  if (searching) groups = _filterBySearch(groups, _searchQuery.trim());
+  if (searching)       groups = _filterBySearch(groups, _searchQuery.trim());
+  if (_activeGroupId)  groups = _filterByGroup(groups, _activeGroupId);
+
+  const activeGroup = _activeGroupId
+    ? (trip.groups ?? []).find(g => g.id === _activeGroupId)
+    : null;
 
   if (!groups.length) {
     const msg = searching
       ? `Nessun risultato per "<strong>${_esc(_searchQuery)}</strong>"`
-      : category ? 'Nessuna spesa in questa categoria.' : 'Nessuna spesa ancora.';
+      : activeGroup
+        ? `Nessuna spesa per il gruppo <strong>${_esc(activeGroup.name)}</strong>.`
+        : category ? 'Nessuna spesa in questa categoria.' : 'Nessuna spesa ancora.';
     return `
       <div class="empty-state" style="padding:3rem 1rem">
         <p class="empty-state__icon">🧾</p>
@@ -227,11 +311,12 @@ function _renderList() {
   }
 
   const groupsHtml = groups.map(g => DateGroup(g, trip, e => ({
-    deletable: true,
-    breakdown: _openBreakdowns.has(e.id),
+    deletable:  true,
+    breakdown:  _openBreakdowns.has(e.id),
+    groupName:  _matchingGroup(e)?.name,   // badge gruppo se consumer = gruppo esatto
   }))).join('');
-  // Nascondi i totali categoria durante la ricerca
-  const totalsHtml = (category || searching) ? '' : _renderCategoryTotals();
+  // Nascondi i totali categoria durante la ricerca o filtro gruppo
+  const totalsHtml = (category || searching || _activeGroupId) ? '' : _renderCategoryTotals();
 
   return groupsHtml + totalsHtml;
 }

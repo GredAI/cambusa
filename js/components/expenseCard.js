@@ -113,6 +113,7 @@ export function ExpenseCard(expense, trip, opts = {}) {
         <div class="expense-card__body">
           <strong class="expense-card__title">${expense.title}</strong>
           <p class="expense-card__meta">${metaHtml}</p>
+          ${opts.groupName ? `<span class="expense-card__group-tag">👥 ${opts.groupName}</span>` : ''}
         </div>
         <div class="expense-card__right">
           <span class="expense-card__amount">${Selectors.formatCurrency(readAmount(expense))}</span>
