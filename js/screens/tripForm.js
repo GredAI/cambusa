@@ -269,11 +269,15 @@ export const TripFormScreen = {
       const input = document.getElementById('f-g-name');
       const name  = input?.value.trim();
       if (!name) { input?.focus(); return; }
-      _draft.groups.push({ id: crypto.randomUUID(), name, members: [] });
+      const newGroup = { id: crypto.randomUUID(), name, members: [] };
+      _draft.groups.push(newGroup);
       input.value = '';
-      input.focus();
       _isDirty = true;
+      // Auto-espandi il gruppo appena creato so l'utente vede subito il picker dei membri
+      _expandedGid = newGroup.id;
       _refreshGroups();
+      // Focus sull'input nome del gruppo aperto
+      setTimeout(() => document.querySelector(`.group-item[data-gid="${newGroup.id}"] .g-input`)?.focus(), 50);
     };
     document.getElementById('btn-add-g')?.addEventListener('click', _addG);
     document.getElementById('f-g-name')?.addEventListener('keydown', e => {
@@ -483,6 +487,8 @@ function _refreshParticipants() {
   if (count) count.textContent = _draft.participants.length > 0
     ? _draft.participants.length : 'nessuno';
   _bindParticipantEvents();
+  // Se un gruppo è aperto, aggiorna la sua member list così i nuovi partecipanti compaiono subito
+  if (_expandedGid) _refreshGroups();
 }
 
 function _bindParticipantEvents() {
