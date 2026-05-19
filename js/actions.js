@@ -20,6 +20,7 @@
 
 import { DB }    from './indexedDb.js';
 import { State } from './state.js';
+import { recurrenceLabel } from './domain/recurrence.js';
 
 import { Ok, Err } from './domain/result.js';
 import {
@@ -133,6 +134,14 @@ export const Actions = {
       await DB.settings.save(settings);
       State.trips = await DB.trips.getAll();
       console.log('[Actions] Migrazione v11→v12 (trip.type) completata');
+    }
+    if ((settings.schemaVersion ?? 0) < 13) {
+      // Aggiunge recurringTemplates: [] ai trip esistenti
+      await _migrateToV13();
+      settings.schemaVersion = 13;
+      await DB.settings.save(settings);
+      State.trips = await DB.trips.getAll();
+      console.log('[Actions] Migrazione v12→v13 (recurringTemplates) completata');
     }
 
     State.settings = settings;
@@ -425,6 +434,136 @@ export const Actions = {
     return Ok(null);
   },
 
+  // ── Spese ricorrenti ──────────────────────────────────
+
+  /**
+   * Aggiunge un template di spesa ricorrente al trip.
+   */
+  async addRecurringTemplate(tripId, data) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    if (!trip.recurringTemplates) trip.recurringTemplates = [];
+    const t = {
+      id:           crypto.randomUUID(),
+      title:        (data.title ?? '').trim(),
+      category:     data.category     ?? 'altro',
+      amountCents:  data.amountCents  ?? 0,
+      recurrence:   data.recurrence   ?? 'monthly',
+      consumerPids: data.consumerPids ?? [],
+      payerId:      data.payerId      ?? null,
+      startDate:    data.startDate    ?? new Date().toISOString().slice(0, 10),
+      active:       true,
+      lastGenerated: null,
+    };
+    if (!t.title) return Err(['RECURRING_MISSING_TITLE']);
+    if (t.amountCents <= 0) return Err(['RECURRING_MISSING_AMOUNT']);
+    trip.recurringTemplates.push(t);
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(t);
+  },
+
+  /**
+   * Aggiorna un template esistente.
+   */
+  async updateRecurringTemplate(tripId, templateId, data) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    const idx = (trip.recurringTemplates ?? []).findIndex(t => t.id === templateId);
+    if (idx === -1) return Err(['RECURRING_NOT_FOUND']);
+    trip.recurringTemplates[idx] = {
+      ...trip.recurringTemplates[idx],
+      title:        (data.title ?? '').trim()   || trip.recurringTemplates[idx].title,
+      category:     data.category     ?? trip.recurringTemplates[idx].category,
+      amountCents:  data.amountCents  ?? trip.recurringTemplates[idx].amountCents,
+      recurrence:   data.recurrence   ?? trip.recurringTemplates[idx].recurrence,
+      consumerPids: data.consumerPids ?? trip.recurringTemplates[idx].consumerPids,
+      payerId:      data.payerId      ?? trip.recurringTemplates[idx].payerId,
+      startDate:    data.startDate    ?? trip.recurringTemplates[idx].startDate,
+    };
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(trip.recurringTemplates[idx]);
+  },
+
+  /**
+   * Attiva / mette in pausa un template.
+   */
+  async toggleRecurringTemplate(tripId, templateId) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    const t = (trip.recurringTemplates ?? []).find(t => t.id === templateId);
+    if (!t) return Err(['RECURRING_NOT_FOUND']);
+    t.active = !t.active;
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(t);
+  },
+
+  /**
+   * Elimina un template.
+   */
+  async deleteRecurringTemplate(tripId, templateId) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    trip.recurringTemplates = (trip.recurringTemplates ?? []).filter(t => t.id !== templateId);
+    trip.updatedAt = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return Ok(null);
+  },
+
+  /**
+   * Genera la spesa reale da un template, aggiorna lastGenerated.
+   */
+  async generateRecurringExpense(tripId, templateId) {
+    const trip = _findTrip(tripId);
+    if (!trip) return Err([G.TRIP_NOT_FOUND]);
+    const t = (trip.recurringTemplates ?? []).find(t => t.id === templateId);
+    if (!t) return Err(['RECURRING_NOT_FOUND']);
+
+    const participants = trip.participants ?? [];
+    const consumerPids = t.consumerPids?.length
+      ? t.consumerPids.filter(pid => participants.find(p => p.id === pid))
+      : participants.map(p => p.id);
+
+    if (!consumerPids.length) return Err(['RECURRING_NO_CONSUMERS']);
+    if (!t.payerId)           return Err(['RECURRING_NO_PAYER']);
+
+    // Divide equamente (con correzione resto)
+    const share    = Math.floor(t.amountCents / consumerPids.length);
+    const rem      = t.amountCents - share * consumerPids.length;
+    const consumers = consumerPids.map((pid, i) => ({
+      participantId: pid,
+      shares: share + (i === 0 ? rem : 0),
+    }));
+
+    const expenseData = {
+      title:       t.title,
+      category:    t.category ?? 'altro',
+      amountCents: t.amountCents,
+      currency:    trip.currency ?? '€',
+      date:        new Date().toISOString().slice(0, 10),
+      notes:       `Generata da ricorrente ${recurrenceLabel(t.recurrence).toLowerCase()}`,
+      consumers,
+      payers: [{ participantId: t.payerId, sharesPaid: t.amountCents }],
+      splitMeta: { consumerMode: 'amounts', recurringTemplateId: t.id },
+    };
+
+    const result = await this.createExpense(tripId, expenseData);
+    if (!result.ok) return result;
+
+    // Aggiorna lastGenerated
+    t.lastGenerated = new Date().toISOString().slice(0, 10);
+    trip.updatedAt  = _now();
+    await DB.trips.save(trip);
+    if (State.currentTrip?.id === tripId) State.currentTrip = trip;
+    return result;
+  },
+
   // ── Export / Import ───────────────────────────────────
 
   /**
@@ -588,6 +727,21 @@ async function _migrateToV11() {
     }
   }
   if (updated > 0) console.log(`[Actions] _migrateToV11: avatarIndex assegnato in ${updated} viaggio/i`);
+}
+
+// ── Migrazione v13: aggiunge trip.recurringTemplates ──
+// IDEMPOTENTE: salta trip che hanno già il campo.
+async function _migrateToV13() {
+  const trips = await DB.trips.getAll();
+  let updated = 0;
+  for (const trip of trips) {
+    if (!Array.isArray(trip.recurringTemplates)) {
+      trip.recurringTemplates = [];
+      await DB.trips.save(trip);
+      updated++;
+    }
+  }
+  if (updated > 0) console.log(`[Actions] _migrateToV13: recurringTemplates aggiunto a ${updated} trip`);
 }
 
 // ── Migrazione v12: aggiunge trip.type ────────────────

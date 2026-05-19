@@ -7,6 +7,7 @@ import { Toast }     from '../toast.js';
 import { isGroupExpense, readAmount, readPayers } from '../domain/guards.js';
 import { participantAvatar } from '../components/avatar.js';
 import { tripTypeInfo } from '../domain/tripType.js';
+import { pendingTemplates } from '../domain/recurrence.js';
 
 const CAT_ICON = {
   alloggio: '🏠', trasporti: '🚗', noleggi: '⛵',
@@ -32,6 +33,7 @@ export const TripScreen = {
     const balances    = Selectors.balances();
     const groupExps   = Selectors.expensesSortedByDate().filter(isGroupExpense);
     const recent      = groupExps.slice(0, 3);
+    const pending     = pendingTemplates(trip);
     const catTotals   = Selectors.categoryTotals();
     const f = d => new Date(d).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 
@@ -127,6 +129,21 @@ export const TripScreen = {
                   <span class="expense-item__amount">${Selectors.formatCurrency(readAmount(e))}</span>
                 </div>`;
             }).join('') : `<p class="empty-state__text">Nessuna spesa ancora.</p>`}
+          </div>
+
+          <div class="card">
+            <div class="section-header">
+              <h3 class="section-title">Spese ricorrenti</h3>
+              <button class="btn-link" data-go="recurring-manager">Gestisci →</button>
+            </div>
+            ${(trip.recurringTemplates ?? []).length === 0
+              ? `<p class="empty-state__text" style="font-size:13px;padding:4px 0 2px">
+                   Nessuna spesa ricorrente configurata.
+                 </p>`
+              : `<p class="empty-state__text" style="font-size:13px;padding:4px 0 2px">
+                   ${(trip.recurringTemplates ?? []).filter(t => t.active !== false).length} attive
+                   ${pending.length ? `· <strong style="color:var(--color-accent)">${pending.length} in scadenza</strong>` : ''}
+                 </p>`}
           </div>
 
           ${!isArchived ? `

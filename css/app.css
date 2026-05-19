@@ -3450,6 +3450,153 @@ html[data-theme="dark"] .bottom-nav {
   color: var(--color-primary-dark);
 }
 
+/* =====================================================
+   SPESE RICORRENTI — Recurring Manager
+   ===================================================== */
+
+/* Banner scadenze in lista spese */
+.recurring-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-accent-dark);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  margin-bottom: 4px;
+}
+.recurring-banner:active { opacity: .8; }
+.recurring-banner__arrow { font-size: 16px; }
+
+/* Banner scadenze in recurring manager */
+.rm-pending-banner {
+  background: color-mix(in srgb, var(--color-accent) 10%, var(--color-surface));
+  border: 1.5px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  border-radius: var(--r-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent-dark);
+  margin-bottom: 12px;
+}
+
+/* Card template ricorrente */
+.rm-card {
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--r-md);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.rm-card--due {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 4%, var(--color-surface));
+}
+.rm-card--inactive {
+  opacity: .55;
+}
+.rm-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rm-card__info { display: flex; flex-direction: column; gap: 2px; }
+.rm-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.rm-card__recurrence {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.rm-card__amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.rm-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-sub);
+  margin-bottom: 10px;
+}
+.rm-card__due { font-weight: 500; }
+.rm-card__due--alert { color: var(--color-accent-dark); font-weight: 700; }
+
+.rm-card__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.rm-btn-generate {
+  flex: 1;
+  padding: 9px 14px;
+  font-size: 13px;
+}
+.rm-btn-edit, .rm-btn-toggle {
+  padding: 7px 12px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-sub);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.rm-btn-edit:active, .rm-btn-toggle:active { opacity: .75; }
+.rm-btn-delete {
+  padding: 7px 10px;
+  border-radius: var(--r-full);
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.rm-btn-delete:active { color: var(--color-danger); }
+
+/* Form nuovo/modifica template */
+.rm-form {
+  margin-top: 12px;
+}
+.rm-form__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.rm-form__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+/* Bottone aggiungi ricorrente */
+.rm-add-btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
 /* Dark theme micro-arc text in trip card */
 html[data-theme="dark"] .trip-card__arc text {
   fill: #f0ece6;

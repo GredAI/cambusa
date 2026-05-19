@@ -18,6 +18,7 @@ import { DateGroup }   from '../components/dateGroup.js';
 import { FilterChips } from '../components/filterChips.js';
 import { Modal }       from '../ui/modal.js';
 import { Toast }       from '../toast.js';
+import { pendingTemplates } from '../domain/recurrence.js';
 
 // ── Stato modulo ──────────────────────────────────────
 let _activeFilter   = 'all';
@@ -52,6 +53,7 @@ export const ExpensesScreen = {
         })}
 
         <main class="screen-content">
+          ${_renderRecurringBanner()}
           ${FilterChips(categories, _activeFilter)}
           ${_renderGroupFilterRow()}
           <div id="search-bar-container">${_renderSearchBar()}</div>
@@ -90,6 +92,12 @@ export const ExpensesScreen = {
         // ── Back ─────────────────────────────────────
         if (e.target.closest('.btn-back')) {
           Router.go('trip', { tripId: State.currentTrip?.id });
+          return;
+        }
+
+        // ── Banner ricorrenti ────────────────────────
+        if (e.target.closest('[data-action="open-recurring"]')) {
+          Router.go('recurring-manager', { tripId: State.currentTrip?.id });
           return;
         }
 
@@ -218,6 +226,18 @@ function _renderSearchBar() {
              placeholder="Cerca per titolo, pagante, note…"
              value="${(_searchQuery ?? '').replace(/"/g, '&quot;')}" />
     </div>`;
+}
+
+// ── Banner spese ricorrenti in scadenza ───────────────
+function _renderRecurringBanner() {
+  const trip    = State.currentTrip;
+  const pending = pendingTemplates(trip);
+  if (!pending.length) return '';
+  return `
+    <button class="recurring-banner" data-action="open-recurring">
+      📅 ${pending.length} ${pending.length === 1 ? 'spesa ricorrente in scadenza' : 'spese ricorrenti in scadenza'}
+      <span class="recurring-banner__arrow">→</span>
+    </button>`;
 }
 
 // ── Chip filtro gruppo ────────────────────────────────

@@ -10,7 +10,7 @@ import { Actions } from './actions.js';
 import { Render }  from './ui.js';
 
 // Schermate che richiedono expenses + settlements in State
-const TRIP_SCREENS = new Set(['trip', 'expenses', 'balances', 'new-expense', 'receipt-scanner']);
+const TRIP_SCREENS = new Set(['trip', 'expenses', 'balances', 'new-expense', 'receipt-scanner', 'recurring-manager']);
 
 export const Router = {
 

@@ -19,7 +19,8 @@ import { NewExpenseScreen }  from './screens/newExpense.js';
 import { TripFormScreen }    from './screens/tripForm.js';
 import { SettingsScreen }    from './screens/settings.js';
 import { OnboardingScreen }    from './screens/onboarding.js';
-import { ReceiptScannerScreen } from './screens/receiptScanner.js';
+import { ReceiptScannerScreen }   from './screens/receiptScanner.js';
+import { RecurringManagerScreen } from './screens/recurringManager.js';
 
 // ── Registra le schermate ─────────────────────────────────
 Router._screens = {
@@ -31,7 +32,8 @@ Router._screens = {
   'trip-form':        TripFormScreen,
   'settings':         SettingsScreen,
   'onboarding':       OnboardingScreen,
-  'receipt-scanner':  ReceiptScannerScreen,
+  'receipt-scanner':   ReceiptScannerScreen,
+  'recurring-manager': RecurringManagerScreen,
 };
 
 // ── Service Worker ────────────────────────────────────────

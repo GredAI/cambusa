@@ -100,7 +100,8 @@ export function normalizeTrip(input) {
     type:         input.type         ?? 'viaggio',
     participants: input.participants  ?? [],
     groups:       input.groups        ?? [],
-    splitPresets: input.splitPresets  ?? [],
+    splitPresets:       input.splitPresets       ?? [],
+    recurringTemplates: input.recurringTemplates ?? [],
     createdAt:    input.createdAt  ?? now(),
     updatedAt:    now(),
   };
