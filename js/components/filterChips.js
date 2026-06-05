@@ -3,7 +3,7 @@
    Barra filtri categoria per la lista spese.
    ===================================================== */
 
-import { CAT_CONFIG } from './expenseCard.js';
+import { catIcon, CAT_LABEL } from './catIcon.js';
 
 /**
  * @param {string[]} categories   — elenco id categorie presenti
@@ -11,11 +11,12 @@ import { CAT_CONFIG } from './expenseCard.js';
  */
 export function FilterChips(categories, activeFilter) {
   const chips = categories.map(c => {
-    const cfg = CAT_CONFIG[c] ?? { icon: '📦', label: c };
+    const safecat = c || 'altro';
+    const label   = CAT_LABEL[safecat] ?? safecat;
     return `
-      <button class="filter-chip ${activeFilter === c ? 'filter-chip--active' : ''}"
-              data-filter="${c}">
-        ${cfg.icon} ${cfg.label}
+      <button class="filter-chip ${activeFilter === safecat ? 'filter-chip--active' : ''}"
+              data-filter="${safecat}">
+        ${catIcon(safecat, 15)} ${label}
       </button>`;
   }).join('');
 

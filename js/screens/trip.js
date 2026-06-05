@@ -8,7 +8,7 @@ import { isGroupExpense, readAmount, readPayers } from '../domain/guards.js';
 import { participantAvatar } from '../components/avatar.js';
 import { tripTypeInfo } from '../domain/tripType.js';
 import { pendingTemplates } from '../domain/recurrence.js';
-import { catIcon } from '../components/catIcon.js';
+import { catIcon, CAT_LABEL } from '../components/catIcon.js';
 
 export const TripScreen = {
 
@@ -47,7 +47,7 @@ export const TripScreen = {
       <div class="screen" id="screen-trip">
         ${Topbar({
           title:    trip.name,
-          subtitle: `${trip.location} · ${f(trip.startDate)} – ${f(trip.endDate)}`,
+          subtitle: `${trip.location} · ${trip.startDate === trip.endDate ? f(trip.startDate) : `${f(trip.startDate)} – ${f(trip.endDate)}`}`,
           back:     true,
           backNav:  'home',
           right:    rightBtn,
@@ -93,7 +93,7 @@ export const TripScreen = {
                   <span class="cat-bar-icon">${catIcon(cat, 18)}</span>
                   <div class="cat-bar-body">
                     <div class="cat-bar-label">
-                      <span>${cat.charAt(0).toUpperCase() + cat.slice(1)}</span>
+                      <span>${CAT_LABEL[cat] ?? (cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'Altro')}</span>
                       <span class="cat-bar-amt">${Selectors.formatCurrency(amt)}</span>
                     </div>
                     <div class="cat-bar-track">

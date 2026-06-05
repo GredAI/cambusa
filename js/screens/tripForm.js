@@ -93,15 +93,22 @@ function _renderCal() {
   const start = _draft.startDate || '';
   const end   = _draft.endDate   || '';
 
-  // ── Stringa range ──────────────────────────────────
+  // ── Stringa range + pulsanti summary ──────────────
   const _fLoc = (d, opts) => new Date(d + 'T00:00:00').toLocaleDateString('it-IT', opts);
-  let rangeStr = '', hint = '';
+  let rangeStr = '', hint = '', summaryBtn = '';
   if (!start) {
-    hint = 'Seleziona il giorno di inizio';
-  } else if (!end || start === end) {
+    hint = 'Tocca un giorno per selezionare la data';
+  } else if (_calPicking === 'end') {
+    // Modalità selezione fine: start visibile, aspettiamo end
     rangeStr = _fLoc(start, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
-    if (_calPicking === 'end') hint = 'Tocca un\'altra data per impostare la fine';
+    hint = 'Tocca la data di fine del periodo';
+    summaryBtn = `<button class="cal-cancel-end" data-cal-action="cancel-end">Annulla</button>`;
+  } else if (!end || start === end) {
+    // Singolo giorno — selezione completa, range opzionale
+    rangeStr = _fLoc(start, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+    summaryBtn = `<button class="cal-add-end" data-cal-action="add-end">+ Aggiungi data di fine</button>`;
   } else {
+    // Range selezionato — completo
     const sameYear  = start.slice(0,4) === end.slice(0,4);
     const sameMonth = start.slice(0,7) === end.slice(0,7);
     const optsA = sameMonth
@@ -110,6 +117,7 @@ function _renderCal() {
       ? { day: 'numeric', month: 'short' }
       : { day: 'numeric', month: 'short', year: 'numeric' };
     rangeStr = `${_fLoc(start, optsA)} – ${_fLoc(end, { day: 'numeric', month: 'long', year: 'numeric' })}`;
+    summaryBtn = `<button class="cal-remove-end" data-cal-action="remove-end">× Solo un giorno</button>`;
   }
 
   // ── Celle ─────────────────────────────────────────
@@ -167,6 +175,7 @@ function _renderCal() {
     <div class="date-cal__summary">
       ${rangeStr ? `<p class="cal-range-str">${rangeStr}</p>` : ''}
       ${hint     ? `<p class="cal-hint">${hint}</p>` : ''}
+      ${summaryBtn}
     </div>`;
 }
 
@@ -364,23 +373,40 @@ export const TripFormScreen = {
         document.getElementById('date-cal-wrap').innerHTML = _renderCal();
         return;
       }
+      // Pulsanti summary (add-end, cancel-end, remove-end)
+      const calAction = e.target.closest('[data-cal-action]');
+      if (calAction) {
+        const action = calAction.dataset.calAction;
+        if (action === 'add-end') {
+          _calPicking = 'end';
+        } else if (action === 'cancel-end') {
+          _draft.endDate = _draft.startDate;
+          _calPicking = 'start';
+        } else if (action === 'remove-end') {
+          _draft.endDate = _draft.startDate;
+          _calPicking = 'start';
+        }
+        document.getElementById('date-cal-wrap').innerHTML = _renderCal();
+        return;
+      }
       // Selezione giorno
       const dayBtn = e.target.closest('[data-calday]');
       if (!dayBtn) return;
       const d = dayBtn.dataset.calday;
       if (_calPicking === 'start') {
+        // Un solo tap = selezione completa (giorno singolo)
         _draft.startDate = d;
         _draft.endDate   = d;
-        _calPicking = 'end';
+        // _calPicking rimane 'start': nessun secondo tap obbligatorio
       } else {
+        // Modalità selezione fine (attivata da "+ Aggiungi data di fine")
         if (d < _draft.startDate) {
-          // Prima dello start: ricomincia
+          // Data precedente allo start: ricomincia come giorno singolo
           _draft.startDate = d;
           _draft.endDate   = d;
-          _calPicking = 'end';
+          _calPicking = 'start';
         } else {
-          // Fine range (o stessa data = evento singolo)
-          _draft.endDate  = d;
+          _draft.endDate = d;
           _calPicking = 'start';
         }
       }

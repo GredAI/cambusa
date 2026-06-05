@@ -126,7 +126,8 @@ export const Selectors = {
   /** Totale per categoria (solo spese attive) */
   categoryTotals() {
     return State.expenses.filter(Guards.isGroupExpense).reduce((map, e) => {
-      map[e.category] = (map[e.category] || 0) + Guards.readAmount(e);
+      const cat = e.category || 'altro';  // guard: categoria mancante → 'altro'
+      map[cat] = (map[cat] || 0) + Guards.readAmount(e);
       return map;
     }, {});
   },

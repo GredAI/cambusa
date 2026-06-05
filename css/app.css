@@ -1339,6 +1339,33 @@ body {
 .cal-hint {
   font-size: 12px; color: var(--color-text-muted); margin: 0;
 }
+/* Pulsanti azione summary calendario */
+.cal-add-end, .cal-remove-end, .cal-cancel-end {
+  margin-top: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.cal-add-end {
+  background: var(--color-surface-raised, #f0f9f8);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+.cal-remove-end {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1.5px solid var(--color-border);
+}
+.cal-cancel-end {
+  background: transparent;
+  color: var(--color-text-muted);
+  border: 1.5px solid var(--color-border);
+}
+.cal-add-end:active, .cal-remove-end:active, .cal-cancel-end:active { opacity: 0.6; }
 
 /* ── Create Trip: valuta ──────────────────────────────── */
 .currency-row {

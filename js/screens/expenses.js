@@ -14,6 +14,7 @@ import { Router }    from '../router.js';
 import { Selectors } from '../selectors.js';
 import { Topbar, BottomNav } from '../ui.js';
 import { ExpenseCard, CAT_CONFIG } from '../components/expenseCard.js';
+import { catIcon, CAT_LABEL } from '../components/catIcon.js';
 import { DateGroup }   from '../components/dateGroup.js';
 import { FilterChips } from '../components/filterChips.js';
 import { Modal }       from '../ui/modal.js';
@@ -371,11 +372,12 @@ function _renderCategoryTotals() {
   if (!entries.length) return '';
 
   const rows = entries.map(([cat, amount]) => {
-    const cfg = CAT_CONFIG[cat] ?? { icon: '📦', label: cat };
+    const safecat = cat || 'altro';
+    const label   = CAT_LABEL[safecat] ?? (CAT_CONFIG[safecat]?.label ?? safecat);
     return `
       <div class="cat-total-row">
-        <span class="cat-total-row__icon">${cfg.icon}</span>
-        <span class="cat-total-row__label">${cfg.label}</span>
+        <span class="cat-total-row__icon">${catIcon(safecat, 18)}</span>
+        <span class="cat-total-row__label">${label}</span>
         <span class="cat-total-row__amount">${Selectors.formatCurrency(amount)}</span>
       </div>`;
   }).join('');
