@@ -10,7 +10,7 @@ import { Topbar, BottomNav, applyTheme } from '../ui.js';
 import { Toast }   from '../toast.js';
 import { getLastBackupInfo, downloadLastBackup, maybeAutoBackup } from '../autoBackup.js';
 
-const APP_VERSION = 'v95';
+const APP_VERSION = 'v117';
 
 const CURRENCIES = ['€', '$', '£', 'CHF', '¥', 'kr'];
 
