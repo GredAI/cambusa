@@ -106,6 +106,8 @@ export function ExpenseCard(expense, trip, opts = {}) {
         </div>`).join('')}
     </div>` : '';
 
+  const hasAttachment = (expense.attachmentIds?.length ?? 0) > 0;
+
   return `
     <div class="expense-card ${isOpen ? 'expense-card--open' : ''}"
          data-expense-id="${expense.id}">
@@ -117,6 +119,17 @@ export function ExpenseCard(expense, trip, opts = {}) {
           ${opts.groupName ? `<span class="expense-card__group-tag">👥 ${opts.groupName}</span>` : ''}
         </div>
         <div class="expense-card__right">
+          ${hasAttachment ? `
+            <button class="expense-card__attach-btn" data-view-attachment="${expense.id}"
+                    aria-label="Vedi scontrino"
+                    data-load-attachment="${expense.id}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21,15 16,10 5,21"/>
+              </svg>
+            </button>` : ''}
           <span class="expense-card__amount">${Selectors.formatCurrency(readAmount(expense))}</span>
           ${opts.deletable ? `
             <button class="expense-card__delete" data-delete-expense="${expense.id}"

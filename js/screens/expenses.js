@@ -28,6 +28,34 @@ let _searchQuery    = '';
 let _searchVisible  = false;
 const _openBreakdowns = new Set();
 
+// ── Viewer allegato fullscreen ────────────────────────
+let _attachObjectUrl = null;
+
+function _showAttachmentViewer(blob) {
+  // Revoca URL precedente se esiste
+  if (_attachObjectUrl) URL.revokeObjectURL(_attachObjectUrl);
+  _attachObjectUrl = URL.createObjectURL(blob);
+
+  const overlay = document.createElement('div');
+  overlay.id        = 'attachment-viewer';
+  overlay.className = 'attach-viewer';
+  overlay.innerHTML = `
+    <div class="attach-viewer__backdrop"></div>
+    <div class="attach-viewer__content">
+      <button class="attach-viewer__close" aria-label="Chiudi">✕</button>
+      <img class="attach-viewer__img" src="${_attachObjectUrl}" alt="Scontrino" />
+    </div>`;
+  document.body.appendChild(overlay);
+  // Chiudi al tap su backdrop o pulsante close
+  overlay.addEventListener('click', e => {
+    if (e.target.closest('.attach-viewer__close') || e.target.classList.contains('attach-viewer__backdrop')) {
+      overlay.remove();
+      URL.revokeObjectURL(_attachObjectUrl);
+      _attachObjectUrl = null;
+    }
+  });
+}
+
 // ── Screen ────────────────────────────────────────────
 export const ExpensesScreen = {
 
@@ -131,6 +159,20 @@ export const ExpensesScreen = {
             _openBreakdowns.add(id);
           }
           document.getElementById('expenses-list').innerHTML = _renderList();
+          return;
+        }
+
+        // ── Allegato scontrino → viewer fullscreen ────
+        const attachBtn = e.target.closest('[data-view-attachment]');
+        if (attachBtn) {
+          e.stopPropagation();
+          const expenseId = attachBtn.dataset.viewAttachment;
+          const atts = await Actions.getAttachmentsByExpense(expenseId);
+          if (atts?.[0]?.blob) {
+            _showAttachmentViewer(atts[0].blob);
+          } else {
+            Toast.show('Allegato non disponibile', { type: 'info' });
+          }
           return;
         }
 

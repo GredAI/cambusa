@@ -29,6 +29,7 @@ let _title              = '';
 let _category           = 'altro';
 let _date               = '';
 let _detectedTotalCents = null;    // totale rilevato dal testo OCR
+let _capturedFile       = null;    // File originale per allegato
 
 function _reset() {
   _phase              = 'scan';
@@ -39,6 +40,7 @@ function _reset() {
   _category           = 'altro';
   _date               = today();
   _detectedTotalCents = null;
+  _capturedFile       = null;
 }
 
 // ── Helpers ───────────────────────────────────────────
@@ -472,6 +474,15 @@ async function _createExpense() {
     return;
   }
 
+  // Salva lo scontrino come allegato se disponibile
+  if (_capturedFile) {
+    try {
+      await Actions.saveAttachment(result.value.id, _capturedFile);
+    } catch {
+      // Allegato non critico — non blocca il flusso
+    }
+  }
+
   Toast.show(`✓ "${data.title}" aggiunta`, { type: 'success' });
   Router.go('expenses', { tripId: trip.id });
 }
@@ -669,6 +680,7 @@ async function _onChange(e) {
   document.getElementById('rs-manual-btn').style.display     = 'none';
 
   try {
+    _capturedFile = file;   // conserva il blob per allegarlo alla spesa
     const text = await OCR.recognize(file, pct => {
       const fill  = document.getElementById('rs-progress-fill');
       const label = document.getElementById('rs-progress-label');

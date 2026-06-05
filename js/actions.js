@@ -671,6 +671,41 @@ export const Actions = {
     return Ok({ trip: newTrip });
   },
 
+  // ── Attachments ───────────────────────────────────────
+
+  /**
+   * Salva il blob di uno scontrino e collega l'ID all'expense.
+   * @param {string} expenseId
+   * @param {File|Blob} file
+   */
+  async saveAttachment(expenseId, file) {
+    const id  = crypto.randomUUID();
+    const blob = file instanceof Blob ? file : new Blob([file]);
+    await DB.attachments.save({
+      id,
+      expenseId,
+      blob,
+      mimeType:  file.type ?? 'image/jpeg',
+      createdAt: new Date().toISOString(),
+    });
+    // Aggiorna attachmentIds sull'expense (upsert completo)
+    const expense = State.allExpenses.find(e => e.id === expenseId);
+    if (expense) {
+      expense.attachmentIds = [...(expense.attachmentIds ?? []), id];
+      expense.updatedAt     = new Date().toISOString();
+      await DB.expenses.save(expense);
+    }
+    return Ok(id);
+  },
+
+  /**
+   * Restituisce gli attachment di una spesa (array, di solito 0 o 1 elementi).
+   * @param {string} expenseId
+   */
+  async getAttachmentsByExpense(expenseId) {
+    return DB.attachments.getByExpense(expenseId);
+  },
+
   // ── Settings ──────────────────────────────────────────
 
   async saveSettings(prefs) {
