@@ -1,6 +1,6 @@
 # Cambusa — Roadmap di sviluppo
 
-> Aggiornata a **v118** (giugno 2026)
+> Aggiornata a **v119** (settembre 2026)
 
 ---
 
@@ -21,6 +21,7 @@
 | v116 | Fix "undefined" in Per categoria: `filterChips.js`, `selectors.js`, `trip.js` |
 | v117 | Bump version badge a v117; query string index.html aggiornata |
 | v118 | Allegati scontrini: salva blob OCR in IndexedDB, icona 🖼 in card, viewer fullscreen |
+| v119 | Divisione per giorni (📅 Giorni): nuovo consumerMode 'days', pre-fill da startDate/endDate partecipante |
 
 ---
 
@@ -66,7 +67,7 @@ balances = f(expenses, settlements)
 Expense:
   consumers[]: { participantId, shares }     ← DEBIT
   payers[]:    { participantId, sharesPaid } ← CREDIT
-  splitMeta.consumerMode: 'equal' | 'shares' | 'amounts' | 'percent'
+  splitMeta.consumerMode: 'equal' | 'shares' | 'amounts' | 'percent' | 'days'
   splitMeta.guests[]: { guestId, payerIds, gift }
   attachmentIds[]: UUID[] — blob salvati in store 'attachments'
 

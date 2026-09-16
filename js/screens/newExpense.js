@@ -276,6 +276,7 @@ function _renderConsumers(trip) {
   const isShares    = mode === 'shares';
   const isAmounts   = mode === 'amounts';
   const isPercent   = mode === 'percent';
+  const isDays      = mode === 'days';
   const totalShares = _calcConsumerShares();
 
   // Summary dinamico per modalità
@@ -287,8 +288,9 @@ function _renderConsumers(trip) {
     const { text, cls } = _consumerPercentInfo();
     summaryHtml = `<span class="section-sub ${cls}" id="consumer-summary">${text}</span>`;
   } else {
+    const unit    = isDays ? 'gg' : isShares ? 'q' : 'pers.';
     const perUnit = totalShares > 0 && amount
-      ? ` · ${(amount / totalShares).toFixed(2)}${trip.currency}/${isShares ? 'q' : 'pers.'}`
+      ? ` · ${(amount / totalShares).toFixed(2)}${trip.currency}/${unit}`
       : '';
     summaryHtml = `<span class="section-sub" id="consumer-summary">${_form.consumerPids.length} partecipanti${perUnit}</span>`;
   }
@@ -329,6 +331,8 @@ function _renderConsumers(trip) {
               data-cmode="percent">% Perc.</button>
       <button class="split-mode-btn ${mode === 'amounts' ? 'split-mode-btn--active' : ''}"
               data-cmode="amounts">✏ Importo</button>
+      <button class="split-mode-btn ${mode === 'days'    ? 'split-mode-btn--active' : ''}"
+              data-cmode="days">📅 Giorni</button>
     </div>
 
     <div id="consumer-rows">
@@ -343,6 +347,7 @@ function _renderConsumerRow(p, trip) {
   const isShares   = mode === 'shares';
   const isAmounts  = mode === 'amounts';
   const isPercent  = mode === 'percent';
+  const isDays     = mode === 'days';
   const shares     = _form.sharesMap[p.id] ?? 1;
 
   // Modalità percentuale
@@ -391,16 +396,18 @@ function _renderConsumerRow(p, trip) {
       </div>`;
   }
 
-  // Modalità quote / uguale
+  // Modalità quote / giorni / uguale
   let rightContent = '';
-  if (isSelected && isShares) {
+  if (isSelected && (isShares || isDays)) {
+    const unit = isDays ? 'gg' : 'q';
     rightContent = `
       <div class="split-row__controls">
         <button class="split-btn" data-cdelta="-1" data-cpid="${p.id}">−</button>
         <span class="split-qty" id="csq-${p.id}">${shares}</span>
+        <span class="split-qty-unit">${unit}</span>
         <button class="split-btn" data-cdelta="1"  data-cpid="${p.id}">+</button>
       </div>`;
-  } else if (isSelected) {
+  } else if (isSelected && !isDays) {
     rightContent = `<span class="split-qty-label">${shares}q</span>`;
   }
 
@@ -735,9 +742,11 @@ function _refreshConsumerSummary() {
 
   const amount   = parseFloat(_form.amount) || 0;
   const isShares = _form.consumerMode === 'shares';
+  const isDays   = _form.consumerMode === 'days';
+  const unit     = isDays ? 'gg' : isShares ? 'q' : 'pers.';
   const total    = _calcConsumerShares();
   const perUnit  = total > 0 && amount
-    ? ` · ${(amount / total).toFixed(2)}${trip?.currency ?? '€'}/${isShares ? 'q' : 'pers.'}`
+    ? ` · ${(amount / total).toFixed(2)}${trip?.currency ?? '€'}/${unit}`
     : '';
   el.className   = 'section-sub';
   el.textContent = `${_form.consumerPids.length} partecipanti${perUnit}`;
@@ -786,6 +795,10 @@ function _bindConsumerEvents(trip) {
       // Passando a 'percent': distribuisce 100% equamente
       if (newMode === 'percent') {
         _prefillConsumerPercents();
+      }
+      // Passando a 'days': pre-compila con i giorni di presenza di ciascun partecipante
+      if (newMode === 'days') {
+        _prefillConsumerDays(trip);
       }
       _form.consumerMode = newMode;
       _refreshConsumers(trip);
@@ -1371,6 +1384,7 @@ function _buildPayers() {
 function _calcConsumerShares() {
   if (_form.consumerMode === 'equal')   return _form.consumerPids.length;
   if (_form.consumerMode === 'percent') return _form.consumerPids.reduce((s, pid) => s + (_form.consumerPercentMap[pid] ?? 0), 0);
+  // 'shares' e 'days' usano entrambi sharesMap (rapporti interi)
   return _form.consumerPids.reduce((s, pid) => s + (_form.sharesMap[pid] ?? 1), 0);
 }
 
@@ -1420,6 +1434,37 @@ function _prefillConsumerAmounts(trip) {
       remaining -= amt;
     }
   });
+}
+
+/**
+ * Pre-compila sharesMap con i giorni di presenza di ciascun partecipante
+ * rispetto all'intervallo del viaggio (o all'intervallo specifico del partecipante).
+ * Ogni giorno di presenza conta come 1 unità nella divisione proporzionale.
+ */
+function _prefillConsumerDays(trip) {
+  const tripStart = trip.startDate;
+  const tripEnd   = trip.endDate;
+
+  for (const pid of _form.consumerPids) {
+    const p      = trip.participants.find(x => x.id === pid);
+    if (!p) continue;
+
+    const pStart = State.getParticipantStartDate(p, trip);
+    const pEnd   = State.getParticipantEndDate(p, trip);
+
+    // Intersezione tra l'intervallo del partecipante e quello del viaggio
+    const effectiveStart = pStart > tripStart ? pStart : tripStart;
+    const effectiveEnd   = pEnd   < tripEnd   ? pEnd   : tripEnd;
+
+    if (effectiveStart > effectiveEnd || !tripStart || !tripEnd) {
+      // Nessuna data definita o fuori range: assegna 1 giorno come fallback
+      _form.sharesMap[pid] = 1;
+    } else {
+      const ms   = new Date(effectiveEnd) - new Date(effectiveStart);
+      const days = Math.max(1, Math.round(ms / 86400000) + 1);
+      _form.sharesMap[pid] = days;
+    }
+  }
 }
 
 // ── OCR Scontrino ─────────────────────────────────────
@@ -1738,9 +1783,12 @@ function _formFromExpense(expense, trip) {
   }
 
   // consumerMode: se splitMeta è presente usa quello, altrimenti inferisce
+  // Nota: 'days' viene ripristinato direttamente da savedConsumerMode
   const consumerMode = consumersInAmounts
     ? 'amounts'
-    : (savedConsumerMode === 'percent' ? 'percent' : (savedConsumerMode ?? 'shares'));
+    : (savedConsumerMode === 'percent' ? 'percent'
+      : savedConsumerMode === 'days'   ? 'days'
+      : (savedConsumerMode ?? 'shares'));
 
   // Ricostruisce payerPaidMap da expense salvata
   const payerPaidMap = {};

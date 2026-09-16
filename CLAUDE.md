@@ -13,7 +13,7 @@ Dati salvati localmente in **IndexedDB**. Nessun backend, nessun account.
 Distribuita su **GitHub Pages** (`https://gredai.github.io/cambusa/`).
 Repository: `git@github.com:GredAI/cambusa.git`
 
-**Versione corrente: v118**
+**Versione corrente: v119**
 
 ---
 
@@ -66,8 +66,8 @@ Repository: `git@github.com:GredAI/cambusa.git`
 
 ```
 cambusa/
-├── index.html                  ← entry point, ?v=118
-├── sw.js                       ← service worker, cambusa-v118
+├── index.html                  ← entry point, ?v=119
+├── sw.js                       ← service worker, cambusa-v119
 ├── manifest.json
 ├── css/
 │   └── app.css                 ← unico foglio di stile
@@ -154,7 +154,7 @@ L'expense ha `attachmentIds: string[]` per sapere se esistono allegati senza car
   consumers:    [{ participantId, shares }],
   payers:       [{ participantId, sharesPaid }],
   splitMeta:    {
-    consumerMode: 'equal'|'shares'|'amounts'|'percent',
+    consumerMode: 'equal'|'shares'|'amounts'|'percent'|'days',
     guests:       [...],          // ospiti non partecipanti
     receiptItems: [...],          // voci OCR
   },

@@ -1025,6 +1025,7 @@ body {
   color: var(--color-text);
 }
 .split-qty { font-size: 16px; font-weight: 700; min-width: 20px; text-align: center; }
+.split-qty-unit { font-size: 11px; color: var(--color-text-muted); margin-left: 2px; }
 
 /* ── Empty state ──────────────────────────────────────── */
 .empty-state { text-align: center; padding: 48px 20px; }
