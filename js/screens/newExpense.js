@@ -297,7 +297,7 @@ function _renderConsumers(trip) {
 
   return `
     <div class="section-header">
-      <label class="field-label" style="margin:0">Chi consuma</label>
+      <label class="field-label" style="margin:0">${isDays ? 'Chi è presente' : 'Chi consuma'}</label>
       ${summaryHtml}
     </div>
 
@@ -358,7 +358,7 @@ function _renderConsumerRow(p, trip) {
     return `
       <div class="split-row ${!isSelected ? 'split-row--off' : ''}">
         <button class="split-toggle ${isSelected ? 'split-toggle--on' : ''}"
-                data-ctoggle="${p.id}" ${!isCustom ? 'disabled' : ''}>
+                data-ctoggle="${p.id}">
           ${participantAvatar(p, 'avatar--sm')}
           <span class="split-row__name">${p.name}</span>
           ${isSelected ? '<span class="split-check">✓</span>' : ''}
@@ -381,7 +381,7 @@ function _renderConsumerRow(p, trip) {
     return `
       <div class="split-row ${!isSelected ? 'split-row--off' : ''}">
         <button class="split-toggle ${isSelected ? 'split-toggle--on' : ''}"
-                data-ctoggle="${p.id}" ${!isCustom ? 'disabled' : ''}>
+                data-ctoggle="${p.id}">
           ${participantAvatar(p, 'avatar--sm')}
           <span class="split-row__name">${p.name}</span>
           ${isSelected ? '<span class="split-check">✓</span>' : ''}
@@ -414,7 +414,7 @@ function _renderConsumerRow(p, trip) {
   return `
     <div class="split-row ${!isSelected ? 'split-row--off' : ''}">
       <button class="split-toggle ${isSelected ? 'split-toggle--on' : ''}"
-              data-ctoggle="${p.id}" ${!isCustom ? 'disabled' : ''}>
+              data-ctoggle="${p.id}">
         ${participantAvatar(p, 'avatar--sm')}
         <span class="split-row__name">${p.name}</span>
         ${isSelected ? '<span class="split-check">✓</span>' : ''}
@@ -796,19 +796,25 @@ function _bindConsumerEvents(trip) {
       if (newMode === 'percent') {
         _prefillConsumerPercents();
       }
-      // Passando a 'days': pre-compila con i giorni di presenza di ciascun partecipante
+      // Passando a 'days': pre-compila con i giorni di presenza e passa a 'custom'
+      // (in days mode si vogliono sempre modificare i giorni per persona)
       if (newMode === 'days') {
         _prefillConsumerDays(trip);
+        _form.consumerPreset = 'custom';
       }
       _form.consumerMode = newMode;
       _refreshConsumers(trip);
     });
 
-  // Toggle partecipante (custom)
+  // Toggle partecipante — toccare un partecipante passa automaticamente a 'custom'
   document.getElementById('consumer-rows')
     ?.addEventListener('click', e => {
       const btn = e.target.closest('[data-ctoggle]');
-      if (!btn || btn.disabled) return;
+      if (!btn) return;
+      // Auto-switch a 'custom' se si stava usando un preset automatico
+      if (_form.consumerPreset !== 'custom') {
+        _form.consumerPreset = 'custom';
+      }
       const pid = btn.dataset.ctoggle;
       const idx = _form.consumerPids.indexOf(pid);
       if (idx === -1) {
@@ -1118,6 +1124,12 @@ function _applyConsumerPreset(preset, trip) {
     _form.consumerPids = trip.participants.map(p => p.id);
 
   } else if (preset === 'presenti') {
+    // Se il viaggio non ha date, "Presenti" non ha senso: switcha a Custom
+    if (!trip.startDate || !trip.endDate) {
+      _form.consumerPreset = 'custom';
+      Toast.show('Il viaggio non ha date — usa Custom per modificare la selezione', { type: 'info' });
+      return;
+    }
     const date = _form.date || _today();
     _form.consumerPids = trip.participants
       .filter(p => {
@@ -1128,8 +1140,10 @@ function _applyConsumerPreset(preset, trip) {
       .map(p => p.id);
 
     if (_form.consumerPids.length === 0) {
+      // La data spesa è fuori dal range del viaggio: usa le date del viaggio come range
       _form.consumerPids = trip.participants.map(p => p.id);
-      Toast.show('Nessuno presente in questa data — selezionati tutti', { type: 'info' });
+      const fmt = (d) => d ? new Date(d).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) : '?';
+      Toast.show(`Nessuno presente il ${new Date(date).toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} — selezionati tutti (viaggio: ${fmt(trip.startDate)}–${fmt(trip.endDate)})`, { type: 'info' });
     }
 
   } else if (preset.startsWith('g:')) {

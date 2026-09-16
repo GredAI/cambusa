@@ -13,7 +13,7 @@ Dati salvati localmente in **IndexedDB**. Nessun backend, nessun account.
 Distribuita su **GitHub Pages** (`https://gredai.github.io/cambusa/`).
 Repository: `git@github.com:GredAI/cambusa.git`
 
-**Versione corrente: v120**
+**Versione corrente: v121**
 
 ---
 
@@ -66,8 +66,8 @@ Repository: `git@github.com:GredAI/cambusa.git`
 
 ```
 cambusa/
-├── index.html                  ← entry point, ?v=120
-├── sw.js                       ← service worker, cambusa-v120
+├── index.html                  ← entry point, ?v=121
+├── sw.js                       ← service worker, cambusa-v121
 ├── manifest.json
 ├── css/
 │   └── app.css                 ← unico foglio di stile
