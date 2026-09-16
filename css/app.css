@@ -490,9 +490,9 @@ body {
   /* leggera ombra per separare il logo dallo sfondo */
   filter: drop-shadow(0 1px 3px rgba(29,56,68,0.15));
 }
-.topbar__text { flex: 1; }
-.topbar__title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
-.topbar__sub   { color: var(--color-text-sub); font-size: 13px; margin-top: 2px; }
+.topbar__text { flex: 1; min-width: 0; }
+.topbar__title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.topbar__sub   { color: var(--color-text-sub); font-size: 13px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar__badge {
   background: var(--color-bg);
   color: var(--color-text-sub);
@@ -501,7 +501,7 @@ body {
   padding: 4px 10px;
   border-radius: 10px;
 }
-.topbar__right { display: flex; align-items: center; }
+.topbar__right { display: flex; align-items: center; flex-shrink: 0; }
 
 .btn-back {
   background: none;
